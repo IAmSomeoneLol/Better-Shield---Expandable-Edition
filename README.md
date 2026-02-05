@@ -1,5 +1,7 @@
 # Better Shield! - Expandable Edition
 
+![BetterShieldBanner](https://cdn.modrinth.com/data/cached_images/8ec392f7b8b479dba73252210392de941c7cfed2.png)
+
 Complete **Rework** of how the **Vanilla Shield** works. Giving it new **Mechanics/Abilities** aswell as **Customizability** and more **Advancements**.
 
 The shield mod is **Meant to be PvE** mostly, but can be configured fully to make it easier on the **PvP side**. _(Less punishing)_
