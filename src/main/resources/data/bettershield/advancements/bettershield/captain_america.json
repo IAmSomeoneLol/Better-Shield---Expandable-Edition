@@ -1,0 +1,24 @@
+{
+  "display": {
+    "icon": {
+      "item": "minecraft:shield",
+      "nbt": "{Enchantments:[{id:\"minecraft:loyalty\",lvl:3},{id:\"minecraft:piercing\",lvl:4}]}"
+    },
+    "title": {
+      "text": "CAPTAIN AMERICA"
+    },
+    "description": {
+      "text": "Throw a Shield with \"Loyalty\" and \"Piercing\" and hit 3 Enemies in one return."
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "parent": "bettershield:bettershield/throw_joke",
+  "criteria": {
+    "hit_three_enemies": {
+      "trigger": "bettershield:captain_america"
+    }
+  }
+}

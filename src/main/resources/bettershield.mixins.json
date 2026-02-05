@@ -1,0 +1,27 @@
+{
+	"required": true,
+	"package": "nel.bettershield.mixin",
+	"compatibilityLevel": "JAVA_17",
+	"mixins": [
+		"InstantShieldMixin",
+		"ShieldParryMixin",
+		"StunMovementMixin",
+		"StunABlockMixin",
+		"SlamImpactMixin",
+		"StunDamageMixin",
+		"SlamFallReductionMixin",
+		"ShieldItemMixin",
+		"ArrowEntityAccessor",
+		"TridentEntityAccessor",
+		"FireballEntityAccessor",
+		"ReflectKillMixin",
+		"SlamWaterMixin",
+		"LoyaltyEnchantmentMixin",
+		"PiercingEnchantmentMixin",
+		"EnchantmentHelperMixin",
+		"ExplosiveParryMixin",
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

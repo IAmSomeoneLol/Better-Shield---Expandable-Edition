@@ -1,0 +1,24 @@
+{
+  "display": {
+    "icon": {
+      "item": "minecraft:shield",
+      "nbt": "{Enchantments:[{id:\"minecraft:loyalty\",lvl:1}]}"
+    },
+    "title": {
+      "text": "A Throwaway Captain Joke"
+    },
+    "description": {
+      "text": "Get \"Loyalty\" enchanted on your Shield and throw it at an entity."
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "parent": "bettershield:bettershield/root",
+  "criteria": {
+    "hit_with_loyalty": {
+      "trigger": "bettershield:shield_throw_hit"
+    }
+  }
+}

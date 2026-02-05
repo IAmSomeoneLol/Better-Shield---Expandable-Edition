@@ -1,0 +1,18 @@
+{
+  "parent": "bettershield:bettershield/parry",
+  "display": {
+    "icon": {
+      "item": "minecraft:arrow"
+    },
+    "title": "Deflector Reflector",
+    "description": "Kill an entity by deflecting their own projectile back at them",
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true
+  },
+  "criteria": {
+    "kill": {
+      "trigger": "bettershield:reflect_kill"
+    }
+  }
+}

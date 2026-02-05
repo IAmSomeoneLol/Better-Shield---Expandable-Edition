@@ -1,0 +1,18 @@
+{
+  "parent": "bettershield:bettershield/root",
+  "display": {
+    "icon": {
+      "item": "minecraft:firework_rocket"
+    },
+    "title": "THE NAME IS JOHN CENA!",
+    "description": "Perform a Slam that hits at least 5 mobs instantly",
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true
+  },
+  "criteria": {
+    "slam": {
+      "trigger": "bettershield:slam_multi"
+    }
+  }
+}

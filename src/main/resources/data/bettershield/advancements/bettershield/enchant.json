@@ -1,0 +1,25 @@
+{
+  "parent": "bettershield:bettershield/root",
+  "display": {
+    "icon": {
+      "item": "minecraft:enchanting_table"
+    },
+    "title": "You can Enchant it?",
+    "description": "Enchant a Shield using the Enchantment Table",
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true
+  },
+  "criteria": {
+    "enchant": {
+      "trigger": "minecraft:enchanted_item",
+      "conditions": {
+        "item": {
+          "items": [
+            "minecraft:shield"
+          ]
+        }
+      }
+    }
+  }
+}

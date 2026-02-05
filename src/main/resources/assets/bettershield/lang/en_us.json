@@ -1,0 +1,61 @@
+{
+  "enchantment.bettershield.shield_density": "Shield Density",
+  "enchantment.bettershield.parryful": "Parryful",
+  "enchantment.bettershield.deflector": "Deflector",
+  "enchantment.bettershield.parry_doctrine": "Parry Doctrine",
+  "enchantment.bettershield.slam_foam": "Slam Foam",
+  "enchantment.bettershield.masterine": "Masterine",
+
+  "item.minecraft.shield": "Shield",
+  "effect.bettershield.stun": "Stunned",
+
+  "text.autoconfig.bettershield.title": "BetterShield Configuration",
+
+  "text.autoconfig.bettershield.category.combat": "Combat Settings",
+  "text.autoconfig.bettershield.option.combat.parryWindow": "Parry Window (Ticks)",
+  "text.autoconfig.bettershield.option.combat.arrowReflectSpeed": "Reflection Speed",
+  "text.autoconfig.bettershield.option.combat.slamMinimumHeight": "Slam Minimum Height (Blocks)",
+  "text.autoconfig.bettershield.option.combat.bashDamage": "Bash Base Damage",
+  "text.autoconfig.bettershield.option.combat.bashKnockback": "Bash Knockback Strength",
+  "text.autoconfig.bettershield.option.combat.slamRadius": "Slam Effect Radius",
+  "text.autoconfig.bettershield.option.combat.shieldThrowDamage": "Shield Throw Damage",
+  "text.autoconfig.bettershield.option.combat.shieldThrowRange": "Shield Throw Range",
+
+  "text.autoconfig.bettershield.category.stun_mechanics": "Stun Mechanics",
+  "text.autoconfig.bettershield.option.stunMechanics.stunDuration": "Stun Duration (Ticks)",
+  "text.autoconfig.bettershield.option.stunMechanics.bashStunEnabled": "Enable Bash Stun",
+  "text.autoconfig.bettershield.option.stunMechanics.slamStunEnabled": "Enable Slam Stun",
+  "text.autoconfig.bettershield.option.stunMechanics.parryStunEnabled": "Enable Parry Stun",
+  "text.autoconfig.bettershield.option.stunMechanics.deflectStunEnabled": "Enable Deflect Stun (Remote)",
+  "text.autoconfig.bettershield.option.stunMechanics.throwStunEnabled": "Enable Throw Stun",
+
+  "text.autoconfig.bettershield.category.cooldowns": "Cooldowns",
+  "text.autoconfig.bettershield.option.cooldowns.parryMeleeCooldown": "Melee Parry Cooldown",
+  "text.autoconfig.bettershield.option.cooldowns.parryProjectileCooldown": "Projectile Parry Cooldown",
+  "text.autoconfig.bettershield.option.cooldowns.bashCooldown": "Shield Bash Cooldown",
+  "text.autoconfig.bettershield.option.cooldowns.slamCooldown": "Shield Slam Cooldown",
+  "text.autoconfig.bettershield.option.cooldowns.throwCooldown": "Shield Throw Cooldown",
+
+  "text.autoconfig.bettershield.category.hud": "HUD Settings",
+  "text.autoconfig.bettershield.option.hud.hudMode": "HUD Display Mode",
+  "text.autoconfig.bettershield.option.hud.xOffset": "X Offset (From Crosshair)",
+  "text.autoconfig.bettershield.option.hud.yOffset": "Y Offset (From Crosshair)",
+  "text.autoconfig.bettershield.option.hud.scale": "HUD Scale",
+
+  "text.autoconfig.bettershield.category.fun_combos": "Fun Combos",
+  "text.autoconfig.bettershield.option.funCombos.allowVerticalBash": "Vertical Bash (Launch Upward)",
+
+  "enchantment.bettershield.shield_density.desc": "Increases Shield Bash and Slam damage by 10% per level.",
+  "enchantment.bettershield.parryful.desc": "Extends the parry window by 0.2 seconds per level.",
+  "enchantment.bettershield.deflector.desc": "Reflected projectiles deal 15% more damage per level.",
+  "enchantment.bettershield.parry_doctrine.desc": "Repairs 3% of the shield's durability upon a successful parry per level.",
+  "enchantment.bettershield.slam_foam.desc": "Reduces fall damage by 25% per level when using Shield Slam.",
+  "enchantment.bettershield.masterine.desc": "Reduces the cooldown of all Shield abilities by 20% per level.",
+
+  "text.autoconfig.bettershield.option.compatibility.mainHandBlacklist": "Main Hand Blacklist (Disables Offhand Shield)",
+  "text.autoconfig.bettershield.category.compatibility": "Compatibility",
+
+  "category.bettershield.title": "Better Shield!",
+  "key.bettershield.throw": "Throw Shield"
+
+}

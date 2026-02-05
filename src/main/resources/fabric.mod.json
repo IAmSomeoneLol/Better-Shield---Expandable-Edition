@@ -1,0 +1,40 @@
+{
+	"schemaVersion": 1,
+	"id": "bettershield",
+	"version": "${version}",
+	"name": "Better Shield! - Expandable Edition",
+	"description": "Better Shield! Reworks the Vanilla shield Mechanics adding Bash, Parry, Slam, Arrow Deflect and Shield Throw. Custom enchantments, Mod supports and many more!",
+	"authors": [
+		"nela1. [Discord] & NelA47 [MC]"
+	],
+	"license": "CC-BY-NC-ND 4.0",
+	"icon": "assets/bettershield/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"nel.bettershield.Bettershield"
+		],
+		"client": [
+			"nel.bettershield.BettershieldClient"
+		],
+		"fabric-datagen": [
+			"nel.bettershield.BettershieldDataGenerator"
+		],
+		"modmenu": [
+			"nel.bettershield.BetterShieldModMenu"
+		]
+	},
+	"mixins": [
+		"bettershield.mixins.json",
+		{
+			"config": "bettershield.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.18.4",
+		"minecraft": ">=1.20 <=1.20.1",
+		"java": ">=17",
+		"fabric-api": "*"
+	}
+}

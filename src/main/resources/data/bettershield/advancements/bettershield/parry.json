@@ -1,0 +1,18 @@
+{
+  "parent": "bettershield:bettershield/root",
+  "display": {
+    "icon": {
+      "item": "minecraft:iron_ingot"
+    },
+    "title": "Parried it!",
+    "description": "Parry a Player or Mob at least once",
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true
+  },
+  "criteria": {
+    "parry": {
+      "trigger": "bettershield:parry"
+    }
+  }
+}
