@@ -109,6 +109,14 @@ public abstract class ExplosiveParryMixin {
                             player.getWorld().spawnEntity(newProj);
                         }
 
+                        // --- PARTICLE EFFECT (SPARKS) ---
+                        if (player.getWorld() instanceof ServerWorld serverWorld) {
+                            serverWorld.spawnParticles(Bettershield.SPARK_PARTICLE,
+                                    player.getX(), player.getEyeY() - 0.2, player.getZ(),
+                                    15, 0.4, 0.4, 0.4, 0.2);
+                        }
+                        // --------------------------------
+
                         // 6. Cooldowns & Effects
                         int levelMasterine = EnchantmentHelper.getLevel(BetterShieldEnchantments.MASTERINE, activeShield);
                         int baseCd = config.cooldowns.parryProjectileCooldown;

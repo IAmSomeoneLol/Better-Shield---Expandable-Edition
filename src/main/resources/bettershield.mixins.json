@@ -20,6 +20,7 @@
 		"PiercingEnchantmentMixin",
 		"EnchantmentHelperMixin",
 		"ExplosiveParryMixin",
+		"SwiftSneakMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

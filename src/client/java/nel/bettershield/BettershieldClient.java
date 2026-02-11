@@ -1,11 +1,14 @@
 package nel.bettershield;
 
 import nel.bettershield.client.ShieldHudOverlay;
+import nel.bettershield.client.SparkParticle;
+import nel.bettershield.client.CloudParticle; // NEW IMPORT
 import nel.bettershield.client.ThrownShieldEntityRenderer;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
@@ -24,7 +27,6 @@ import net.minecraft.network.PacketByteBuf;
 import net.minecraft.particle.ItemStackParticleEffect;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.Registries;
-import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
 import org.joml.Quaternionf;
@@ -39,6 +41,10 @@ public class BettershieldClient implements ClientModInitializer {
 
 	private static final Identifier STAR_TEXTURE = new Identifier("bettershield", "textures/particle/stun_star.png");
 	private static final HashMap<Integer, Long> STUNNED_ENTITIES = new HashMap<>();
+
+	// Tracks active trails: EntityID -> Remaining Ticks
+	private static final HashMap<Integer, Integer> BASH_TRAILS = new HashMap<>();
+
 	private boolean wasAttackPressed = false;
 	private final Random random = new Random();
 
@@ -58,6 +64,11 @@ public class BettershieldClient implements ClientModInitializer {
 
 		HudRenderCallback.EVENT.register(new ShieldHudOverlay());
 		EntityRendererRegistry.register(Bettershield.THROWN_SHIELD_ENTITY_TYPE, ThrownShieldEntityRenderer::new);
+
+		// --- REGISTER PARTICLE FACTORIES ---
+		ParticleFactoryRegistry.getInstance().register(Bettershield.SPARK_PARTICLE, SparkParticle.Factory::new);
+		ParticleFactoryRegistry.getInstance().register(Bettershield.CLOUD_PARTICLE, CloudParticle.Factory::new); // REGISTER CLOUD
+		// -----------------------------------
 
 		// 1. RECEIVE COOLDOWN SYNC
 		ClientPlayNetworking.registerGlobalReceiver(Bettershield.PACKET_SYNC_COOLDOWN, (client, handler, buf, responseSender) -> {
@@ -118,7 +129,16 @@ public class BettershieldClient implements ClientModInitializer {
 			});
 		});
 
-		// 4. VISUALS
+		// 4. NEW: RECEIVE BASH TRAIL
+		ClientPlayNetworking.registerGlobalReceiver(Bettershield.PACKET_BASH_TRAIL, (client, handler, buf, responseSender) -> {
+			int entityId = buf.readInt();
+			int duration = buf.readInt();
+			client.execute(() -> {
+				BASH_TRAILS.put(entityId, duration);
+			});
+		});
+
+		// 5. VISUALS (STUN HALO)
 		WorldRenderEvents.AFTER_ENTITIES.register(context -> {
 			MinecraftClient client = MinecraftClient.getInstance();
 			if (client.world == null || client.player == null) return;
@@ -131,12 +151,40 @@ public class BettershieldClient implements ClientModInitializer {
 			}
 		});
 
-		// 5. INPUTS
+		// 6. CLIENT TICK (INPUTS & PARTICLES)
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
-			if (client.player == null) return;
+			if (client.player == null || client.world == null) return;
+
+			// --- BASH TRAIL LOGIC ---
+			Iterator<Map.Entry<Integer, Integer>> trailIterator = BASH_TRAILS.entrySet().iterator();
+			while (trailIterator.hasNext()) {
+				Map.Entry<Integer, Integer> entry = trailIterator.next();
+				int id = entry.getKey();
+				int ticks = entry.getValue();
+
+				Entity entity = client.world.getEntityById(id);
+				if (entity != null) {
+					// Spawn particles at feet with slight random offset
+					for (int i = 0; i < 3; i++) {
+						double offsetX = (random.nextGaussian() * 0.2);
+						double offsetZ = (random.nextGaussian() * 0.2);
+						double offsetY = (random.nextDouble() * 0.2);
+
+						// USE CLOUD PARTICLE HERE
+						client.world.addParticle(Bettershield.CLOUD_PARTICLE,
+								entity.getX() + offsetX,
+								entity.getY() + offsetY,
+								entity.getZ() + offsetZ,
+								0, 0.01, 0);
+					}
+				}
+
+				if (ticks <= 1) trailIterator.remove();
+				else entry.setValue(ticks - 1);
+			}
+			// ------------------------
 
 			// --- BLACKLIST CHECK ---
-			// If Offhand Shield + Main Hand Gun -> DISABLE LOGIC
 			ItemStack main = client.player.getMainHandStack();
 			ItemStack off = client.player.getOffHandStack();
 
@@ -147,7 +195,6 @@ public class BettershieldClient implements ClientModInitializer {
 			if (offIsShield && !mainIsShield) {
 				BetterShieldConfig config = Bettershield.getConfig();
 				String itemId = Registries.ITEM.getId(main.getItem()).toString();
-				// Check if Main Hand item contains any blacklisted string (e.g. "tacz", "pointblank")
 				for (String blocked : config.compatibility.mainHandBlacklist) {
 					if (itemId.contains(blocked)) {
 						blacklisted = true;
@@ -157,15 +204,13 @@ public class BettershieldClient implements ClientModInitializer {
 			}
 
 			if (blacklisted) {
-				// Reset states just in case
 				isChargingThrow = false;
 				chargeTicks = 0;
 				wasAttackPressed = false;
-				return; // STOP HERE
+				return;
 			}
-			// -----------------------
 
-			// --- BASH LOGIC ---
+			// --- BASH INPUT ---
 			boolean isAttacking = client.options.attackKey.isPressed();
 			boolean isBlockingInput = client.options.useKey.isPressed();
 			if (isAttacking) {
@@ -179,7 +224,7 @@ public class BettershieldClient implements ClientModInitializer {
 				}
 			} else { wasAttackPressed = false; }
 
-			// --- THROW CHARGE LOGIC ---
+			// --- THROW CHARGE INPUT ---
 			if (THROW_SHIELD_KEY.isPressed()) {
 				boolean hasLoyalShield = (mainIsShield && main.hasEnchantments()) || (offIsShield && off.hasEnchantments());
 
@@ -193,7 +238,6 @@ public class BettershieldClient implements ClientModInitializer {
 					chargeTicks = 0;
 				}
 			} else {
-				// BUTTON RELEASED
 				if (isChargingThrow) {
 					PacketByteBuf buf = PacketByteBufs.create();
 					buf.writeInt(chargeTicks);

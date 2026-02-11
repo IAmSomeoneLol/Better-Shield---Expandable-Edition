@@ -21,8 +21,11 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.particle.DefaultParticleType;
+import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.Hand;
@@ -53,16 +56,17 @@ public class Bettershield implements ModInitializer {
 	public static final Identifier PACKET_STUN_MOBS = new Identifier(MOD_ID, "stun_mobs");
 	public static final Identifier PACKET_SYNC_COOLDOWN = new Identifier(MOD_ID, "sync_cooldown");
 	public static final Identifier PACKET_SLAM_EFFECT = new Identifier(MOD_ID, "slam_effect");
+	public static final Identifier PACKET_BASH_TRAIL = new Identifier(MOD_ID, "bash_trail");
 
 	public static final DefaultParticleType STUN_STAR_PARTICLE = FabricParticleTypes.simple();
+	public static final DefaultParticleType SPARK_PARTICLE = FabricParticleTypes.simple();
+	public static final DefaultParticleType CLOUD_PARTICLE = FabricParticleTypes.simple(); // NEW CLOUD PARTICLE
 
 	public static final EntityType<ThrownShieldEntity> THROWN_SHIELD_ENTITY_TYPE = Registry.register(
 			Registries.ENTITY_TYPE,
 			new Identifier(MOD_ID, "thrown_shield"),
 			FabricEntityTypeBuilder.<ThrownShieldEntity>create(SpawnGroup.MISC, ThrownShieldEntity::new)
-					// CHANGED: 0.9f -> 1.2f (Larger Hitbox)
 					.dimensions(EntityDimensions.fixed(1.2f, 1.2f))
-					// CHANGED: 4 -> 80 (Fixes tracking issues at range)
 					.trackRangeBlocks(80).trackedUpdateRate(10)
 					.build()
 	);
@@ -95,11 +99,12 @@ public class Bettershield implements ModInitializer {
 
 		Registry.register(Registries.STATUS_EFFECT, new Identifier(MOD_ID, "stun"), STUN_EFFECT);
 		Registry.register(Registries.PARTICLE_TYPE, new Identifier(MOD_ID, "stun_star"), STUN_STAR_PARTICLE);
+		Registry.register(Registries.PARTICLE_TYPE, new Identifier(MOD_ID, "spark"), SPARK_PARTICLE);
+		Registry.register(Registries.PARTICLE_TYPE, new Identifier(MOD_ID, "cloud"), CLOUD_PARTICLE); // REGISTER CLOUD
 
 		// --- SHIELD THROW ---
 		ServerPlayNetworking.registerGlobalReceiver(PACKET_SHIELD_THROW, (server, player, handler, buf, responseSender) -> {
 			int chargeTicks = buf.readInt();
-
 			server.execute(() -> {
 				if (player != null) {
 					BetterShieldConfig config = getConfig();
@@ -184,6 +189,31 @@ public class Bettershield implements ModInitializer {
 							else player.setVelocity(rotation.x * bashSpeed, 0, rotation.z * bashSpeed);
 							player.velocityModified = true;
 
+							if (player.getWorld() instanceof ServerWorld serverWorld) {
+								// 1. Send Trail Packet (For lingering effect)
+								PacketByteBuf trailBuf = PacketByteBufs.create();
+								trailBuf.writeInt(player.getId());
+								trailBuf.writeInt(5);
+								player.getWorld().getPlayers().forEach(p -> {
+									if (p instanceof ServerPlayerEntity serverPlayer) {
+										ServerPlayNetworking.send(serverPlayer, PACKET_BASH_TRAIL, trailBuf);
+									}
+								});
+
+								// 2. Initial Burst (Server Side - Immediate Feedback)
+								double offset = 0.5;
+								double px = player.getX() - (rotation.x * offset);
+								double py = player.getY() + 0.1;
+								double pz = player.getZ() - (rotation.z * offset);
+
+								serverWorld.spawnParticles(Bettershield.CLOUD_PARTICLE,
+										px, py, pz,
+										5,             // Count
+										0.2, 0.1, 0.2, // Spread
+										0.02           // Speed
+								);
+							}
+
 							Vec3d pos = player.getPos().add(rotation.multiply(1.5));
 							Box box = new Box(pos.x - 1, pos.y, pos.z - 1, pos.x + 1, pos.y + 2, pos.z + 1);
 
@@ -213,7 +243,6 @@ public class Bettershield implements ModInitializer {
 							int masterineLevel = EnchantmentHelper.getLevel(BetterShieldEnchantments.MASTERINE, shieldStack);
 							int baseCd = config.cooldowns.bashCooldown;
 							int finalCd = (int) (baseCd * (1.0f - (masterineLevel * 0.20f)));
-
 							triggerCooldown(player, 1, finalCd);
 
 						} else {
@@ -233,11 +262,9 @@ public class Bettershield implements ModInitializer {
 							player.fallDistance = 0;
 
 							SLAM_START_Y.put(player.getUuid(), player.getY());
-
 							int masterineLevel = EnchantmentHelper.getLevel(BetterShieldEnchantments.MASTERINE, shieldStack);
 							int baseCd = config.cooldowns.slamCooldown;
 							int finalCd = (int) (baseCd * (1.0f - (masterineLevel * 0.20f)));
-
 							triggerCooldown(player, 2, finalCd);
 						}
 					}
@@ -248,7 +275,6 @@ public class Bettershield implements ModInitializer {
 
 	public static void triggerCooldown(PlayerEntity player, int type, int ticks) {
 		long expiry = player.getWorld().getTime() + ticks;
-
 		if (type == 1) { BASH_COOLDOWN.put(player.getUuid(), expiry); BASH_MAX.put(player.getUuid(), ticks); }
 		if (type == 2) { SLAM_COOLDOWN.put(player.getUuid(), expiry); SLAM_MAX.put(player.getUuid(), ticks); }
 		if (type == 3) { PARRY_MELEE_COOLDOWN.put(player.getUuid(), expiry); PARRY_MELEE_MAX.put(player.getUuid(), ticks); }

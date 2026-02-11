@@ -108,6 +108,14 @@ public abstract class ShieldParryMixin {
                             oldProjectile.discard();
                         }
 
+                        // --- PARTICLE EFFECT (SPARKS) ---
+                        if (player.getWorld() instanceof ServerWorld serverWorld) {
+                            serverWorld.spawnParticles(Bettershield.SPARK_PARTICLE,
+                                    player.getX(), player.getEyeY() - 0.2, player.getZ(),
+                                    10, 0.3, 0.3, 0.3, 0.1);
+                        }
+                        // --------------------------------
+
                         int baseCd = config.cooldowns.parryProjectileCooldown;
                         int finalCd = (int) (baseCd * (1.0f - (levelMasterine * 0.2f)));
                         Bettershield.triggerCooldown(player, 4, finalCd);
@@ -144,6 +152,14 @@ public abstract class ShieldParryMixin {
                             ServerWorld serverWorld = (ServerWorld) player.getWorld();
                             serverWorld.getChunkManager().sendToNearbyPlayers(attacker, ServerPlayNetworking.createS2CPacket(Bettershield.PACKET_STUN_MOBS, buf));
                         }
+
+                        // --- PARTICLE EFFECT (SPARKS) ---
+                        if (player.getWorld() instanceof ServerWorld serverWorld) {
+                            serverWorld.spawnParticles(Bettershield.SPARK_PARTICLE,
+                                    player.getX(), player.getEyeY() - 0.2, player.getZ(),
+                                    10, 0.3, 0.3, 0.3, 0.1);
+                        }
+                        // --------------------------------
 
                         int baseCd = config.cooldowns.parryMeleeCooldown;
                         int finalCd = (int) (baseCd * (1.0f - (levelMasterine * 0.2f)));
