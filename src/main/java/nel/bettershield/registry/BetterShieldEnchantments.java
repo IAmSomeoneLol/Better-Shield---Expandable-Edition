@@ -20,6 +20,12 @@ public class BetterShieldEnchantments {
     public static final Enchantment SLAM_FOAM = new BasicShieldEnchantment(Enchantment.Rarity.COMMON, 2, false, 5, 15);
     public static final Enchantment MASTERINE = new BasicShieldEnchantment(Enchantment.Rarity.RARE, 2, false, 5, 20);
 
+    // NEW: Active Armor (Very Rare)
+    // Min Power 25, Step 50.
+    // Level 1 Cost = 25 (Possible). Level 2 Cost = 75 (Impossible in Table).
+    // This forces it to only spawn as Level I in tables.
+    public static final Enchantment ACTIVE_ARMOR = new BasicShieldEnchantment(Enchantment.Rarity.VERY_RARE, 3, false, 25, 50);
+
     public static void register() {
         register("shield_density", SHIELD_DENSITY);
         register("parryful", PARRYFUL);
@@ -27,6 +33,7 @@ public class BetterShieldEnchantments {
         register("parry_doctrine", PARRY_DOCTRINE);
         register("slam_foam", SLAM_FOAM);
         register("masterine", MASTERINE);
+        register("active_armor", ACTIVE_ARMOR);
     }
 
     private static void register(String name, Enchantment enchantment) {

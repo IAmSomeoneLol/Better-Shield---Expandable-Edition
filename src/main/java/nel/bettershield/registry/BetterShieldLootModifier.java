@@ -14,19 +14,27 @@ public class BetterShieldLootModifier {
     public static void register() {
         LootTableEvents.MODIFY.register((resourceManager, lootManager, id, tableBuilder, source) -> {
 
-            // TARGET: End City & Stronghold Library & Ancient City
+            // TARGET: End City & Stronghold Library & Ancient City & Stronghold Corridor
             if (LootTables.END_CITY_TREASURE_CHEST.equals(id)
                     || LootTables.STRONGHOLD_LIBRARY_CHEST.equals(id)
+                    || LootTables.STRONGHOLD_CORRIDOR_CHEST.equals(id)
                     || LootTables.ANCIENT_CITY_CHEST.equals(id)) {
 
                 LootPool.Builder poolBuilder = LootPool.builder()
                         .rolls(ConstantLootNumberProvider.create(1.0f))
 
-
+                        // Existing Masterine
                         .with(ItemEntry.builder(Items.BOOK)
-                                .weight(5) // Rarity weight
+                                .weight(5)
                                 .apply(new SetEnchantmentsLootFunction.Builder()
                                         .enchantment(BetterShieldEnchantments.MASTERINE, ConstantLootNumberProvider.create(1.0f))
+                                )
+                        )
+                        // NEW: Active Armor (Always Level 1)
+                        .with(ItemEntry.builder(Items.BOOK)
+                                .weight(5) // Same rarity as Masterine
+                                .apply(new SetEnchantmentsLootFunction.Builder()
+                                        .enchantment(BetterShieldEnchantments.ACTIVE_ARMOR, ConstantLootNumberProvider.create(1.0f))
                                 )
                         );
 
@@ -34,4 +42,4 @@ public class BetterShieldLootModifier {
             }
         });
     }
-} // needs to be removed
+}

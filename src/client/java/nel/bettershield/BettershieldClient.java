@@ -2,8 +2,10 @@ package nel.bettershield;
 
 import nel.bettershield.client.ShieldHudOverlay;
 import nel.bettershield.client.SparkParticle;
-import nel.bettershield.client.CloudParticle; // NEW IMPORT
+import nel.bettershield.client.CloudParticle;
 import nel.bettershield.client.ThrownShieldEntityRenderer;
+import nel.bettershield.client.ModShieldRenderer;
+import nel.bettershield.registry.BetterShieldItems;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
@@ -13,14 +15,17 @@ import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
+import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.item.ModelPredicateProviderRegistry;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.render.*;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.network.PacketByteBuf;
@@ -41,14 +46,10 @@ public class BettershieldClient implements ClientModInitializer {
 
 	private static final Identifier STAR_TEXTURE = new Identifier("bettershield", "textures/particle/stun_star.png");
 	private static final HashMap<Integer, Long> STUNNED_ENTITIES = new HashMap<>();
-
-	// Tracks active trails: EntityID -> Remaining Ticks
 	private static final HashMap<Integer, Integer> BASH_TRAILS = new HashMap<>();
-
 	private boolean wasAttackPressed = false;
 	private final Random random = new Random();
 
-	// PUBLIC STATIC ACCESS FOR RENDER MIXIN
 	public static int chargeTicks = 0;
 	public static boolean isChargingThrow = false;
 
@@ -61,16 +62,34 @@ public class BettershieldClient implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
-
 		HudRenderCallback.EVENT.register(new ShieldHudOverlay());
 		EntityRendererRegistry.register(Bettershield.THROWN_SHIELD_ENTITY_TYPE, ThrownShieldEntityRenderer::new);
 
-		// --- REGISTER PARTICLE FACTORIES ---
 		ParticleFactoryRegistry.getInstance().register(Bettershield.SPARK_PARTICLE, SparkParticle.Factory::new);
-		ParticleFactoryRegistry.getInstance().register(Bettershield.CLOUD_PARTICLE, CloudParticle.Factory::new); // REGISTER CLOUD
-		// -----------------------------------
+		ParticleFactoryRegistry.getInstance().register(Bettershield.CLOUD_PARTICLE, CloudParticle.Factory::new);
 
-		// 1. RECEIVE COOLDOWN SYNC
+		// --- REGISTER CUSTOM SHIELD RENDERERS & PREDICATES ---
+		// This applies the logic to Diamond and Netherite shields
+		registerShieldModel(BetterShieldItems.DIAMOND_SHIELD);
+		registerShieldModel(BetterShieldItems.NETHERITE_SHIELD);
+
+		// --- REGISTER PREDICATES FOR VANILLA SHIELD ---
+		// This makes the vanilla shield animate correctly
+		ModelPredicateProviderRegistry.register(Items.SHIELD, new Identifier("bettershield", "throwing"),
+				(stack, world, entity, seed) -> {
+					if (entity == null || !isChargingThrow) return 0.0F;
+					return (entity.getMainHandStack() == stack || entity.getOffHandStack() == stack) ? 1.0F : 0.0F;
+				});
+
+		ModelPredicateProviderRegistry.register(Items.SHIELD, new Identifier("bettershield", "pull"),
+				(stack, world, entity, seed) -> {
+					if (entity == null || !isChargingThrow) return 0.0F;
+					return (float) chargeTicks / 20.0F;
+				});
+		// ----------------------------------------------
+
+		// NOTE: Texture loading is handled by src/main/resources/assets/minecraft/atlases/shield_patterns.json
+
 		ClientPlayNetworking.registerGlobalReceiver(Bettershield.PACKET_SYNC_COOLDOWN, (client, handler, buf, responseSender) -> {
 			int type = buf.readInt();
 			int duration = buf.readInt();
@@ -86,29 +105,23 @@ public class BettershieldClient implements ClientModInitializer {
 			});
 		});
 
-		// 2. RECEIVE STUN
 		ClientPlayNetworking.registerGlobalReceiver(Bettershield.PACKET_STUN_MOBS, (client, handler, buf, responseSender) -> {
 			int entityId = buf.readInt();
 			int duration = buf.readInt();
 			client.execute(() -> {
-				if (client.world != null) {
-					STUNNED_ENTITIES.put(entityId, client.world.getTime() + duration);
-				}
+				if (client.world != null) STUNNED_ENTITIES.put(entityId, client.world.getTime() + duration);
 			});
 		});
 
-		// 3. RECEIVE SLAM PARTICLE EFFECT
 		ClientPlayNetworking.registerGlobalReceiver(Bettershield.PACKET_SLAM_EFFECT, (client, handler, buf, responseSender) -> {
 			double x = buf.readDouble();
 			double y = buf.readDouble();
 			double z = buf.readDouble();
 			String blockId = buf.readString();
-
 			client.execute(() -> {
 				if (client.world != null) {
 					ItemStack debrisStack = new ItemStack(Registries.ITEM.get(new Identifier(blockId)));
 					if (debrisStack.isEmpty()) debrisStack = new ItemStack(Items.COBBLESTONE);
-
 					for (int i = 0; i < 600; i++) {
 						double r = 0.5 + (random.nextDouble() * 1.5);
 						double angle = random.nextDouble() * Math.PI * 2;
@@ -119,26 +132,18 @@ public class BettershieldClient implements ClientModInitializer {
 						double speed = 0.1 + (random.nextDouble() * 0.3);
 						double vx = Math.cos(angle) * speed;
 						double vz = Math.sin(angle) * speed;
-
-						client.world.addParticle(
-								new ItemStackParticleEffect(ParticleTypes.ITEM, debrisStack),
-								ox, oy, oz, vx, vy, vz
-						);
+						client.world.addParticle(new ItemStackParticleEffect(ParticleTypes.ITEM, debrisStack), ox, oy, oz, vx, vy, vz);
 					}
 				}
 			});
 		});
 
-		// 4. NEW: RECEIVE BASH TRAIL
 		ClientPlayNetworking.registerGlobalReceiver(Bettershield.PACKET_BASH_TRAIL, (client, handler, buf, responseSender) -> {
 			int entityId = buf.readInt();
 			int duration = buf.readInt();
-			client.execute(() -> {
-				BASH_TRAILS.put(entityId, duration);
-			});
+			client.execute(() -> { BASH_TRAILS.put(entityId, duration); });
 		});
 
-		// 5. VISUALS (STUN HALO)
 		WorldRenderEvents.AFTER_ENTITIES.register(context -> {
 			MinecraftClient client = MinecraftClient.getInstance();
 			if (client.world == null || client.player == null) return;
@@ -151,66 +156,43 @@ public class BettershieldClient implements ClientModInitializer {
 			}
 		});
 
-		// 6. CLIENT TICK (INPUTS & PARTICLES)
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			if (client.player == null || client.world == null) return;
 
-			// --- BASH TRAIL LOGIC ---
 			Iterator<Map.Entry<Integer, Integer>> trailIterator = BASH_TRAILS.entrySet().iterator();
 			while (trailIterator.hasNext()) {
 				Map.Entry<Integer, Integer> entry = trailIterator.next();
 				int id = entry.getKey();
 				int ticks = entry.getValue();
-
 				Entity entity = client.world.getEntityById(id);
 				if (entity != null) {
-					// Spawn particles at feet with slight random offset
 					for (int i = 0; i < 3; i++) {
 						double offsetX = (random.nextGaussian() * 0.2);
 						double offsetZ = (random.nextGaussian() * 0.2);
 						double offsetY = (random.nextDouble() * 0.2);
-
-						// USE CLOUD PARTICLE HERE
-						client.world.addParticle(Bettershield.CLOUD_PARTICLE,
-								entity.getX() + offsetX,
-								entity.getY() + offsetY,
-								entity.getZ() + offsetZ,
-								0, 0.01, 0);
+						client.world.addParticle(Bettershield.CLOUD_PARTICLE, entity.getX() + offsetX, entity.getY() + offsetY, entity.getZ() + offsetZ, 0, 0.01, 0);
 					}
 				}
-
-				if (ticks <= 1) trailIterator.remove();
-				else entry.setValue(ticks - 1);
+				if (ticks <= 1) trailIterator.remove(); else entry.setValue(ticks - 1);
 			}
-			// ------------------------
 
-			// --- BLACKLIST CHECK ---
 			ItemStack main = client.player.getMainHandStack();
 			ItemStack off = client.player.getOffHandStack();
 
-			boolean mainIsShield = main.isOf(Items.SHIELD);
-			boolean offIsShield = off.isOf(Items.SHIELD);
+			boolean mainIsShield = main.getItem() instanceof net.minecraft.item.ShieldItem;
+			boolean offIsShield = off.getItem() instanceof net.minecraft.item.ShieldItem;
 			boolean blacklisted = false;
 
 			if (offIsShield && !mainIsShield) {
 				BetterShieldConfig config = Bettershield.getConfig();
 				String itemId = Registries.ITEM.getId(main.getItem()).toString();
 				for (String blocked : config.compatibility.mainHandBlacklist) {
-					if (itemId.contains(blocked)) {
-						blacklisted = true;
-						break;
-					}
+					if (itemId.contains(blocked)) { blacklisted = true; break; }
 				}
 			}
 
-			if (blacklisted) {
-				isChargingThrow = false;
-				chargeTicks = 0;
-				wasAttackPressed = false;
-				return;
-			}
+			if (blacklisted) { isChargingThrow = false; chargeTicks = 0; wasAttackPressed = false; return; }
 
-			// --- BASH INPUT ---
 			boolean isAttacking = client.options.attackKey.isPressed();
 			boolean isBlockingInput = client.options.useKey.isPressed();
 			if (isAttacking) {
@@ -224,30 +206,43 @@ public class BettershieldClient implements ClientModInitializer {
 				}
 			} else { wasAttackPressed = false; }
 
-			// --- THROW CHARGE INPUT ---
 			if (THROW_SHIELD_KEY.isPressed()) {
 				boolean hasLoyalShield = (mainIsShield && main.hasEnchantments()) || (offIsShield && off.hasEnchantments());
-
 				if (hasLoyalShield) {
 					isChargingThrow = true;
-					if (chargeTicks < 20) {
-						chargeTicks++;
-					}
-				} else {
-					isChargingThrow = false;
-					chargeTicks = 0;
-				}
+					if (chargeTicks < 20) chargeTicks++;
+				} else { isChargingThrow = false; chargeTicks = 0; }
 			} else {
 				if (isChargingThrow) {
 					PacketByteBuf buf = PacketByteBufs.create();
 					buf.writeInt(chargeTicks);
 					ClientPlayNetworking.send(Bettershield.PACKET_SHIELD_THROW, buf);
-
-					isChargingThrow = false;
-					chargeTicks = 0;
+					isChargingThrow = false; chargeTicks = 0;
 				}
 			}
 		});
+	}
+
+	private void registerShieldModel(Item item) {
+		// 1. Blocking Predicate
+		ModelPredicateProviderRegistry.register(item, new Identifier("blocking"),
+				(stack, world, entity, seed) -> entity != null && entity.isUsingItem() && entity.getActiveItem() == stack ? 1.0F : 0.0F);
+
+		// 2. Throwing Predicate (Required for the animation to start)
+		ModelPredicateProviderRegistry.register(item, new Identifier("bettershield", "throwing"),
+				(stack, world, entity, seed) -> {
+					if (entity == null || !isChargingThrow) return 0.0F;
+					return (entity.getMainHandStack() == stack || entity.getOffHandStack() == stack) ? 1.0F : 0.0F;
+				});
+
+		// 3. Pull Predicate (Required for 0-100% progress)
+		ModelPredicateProviderRegistry.register(item, new Identifier("bettershield", "pull"),
+				(stack, world, entity, seed) -> {
+					if (entity == null || !isChargingThrow) return 0.0F;
+					return (float) chargeTicks / 20.0F;
+				});
+
+		BuiltinItemRendererRegistry.INSTANCE.register(item, new ModShieldRenderer());
 	}
 
 	private void renderHalo(WorldRenderContext context, LivingEntity entity) {

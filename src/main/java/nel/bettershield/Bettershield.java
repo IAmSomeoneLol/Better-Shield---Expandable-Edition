@@ -2,7 +2,9 @@ package nel.bettershield;
 
 import nel.bettershield.effect.StunStatusEffect;
 import nel.bettershield.entity.ThrownShieldEntity;
+import nel.bettershield.item.ModShieldItem; // NEW IMPORT
 import nel.bettershield.registry.BetterShieldEnchantments;
+import nel.bettershield.registry.BetterShieldItems;
 import nel.bettershield.registry.BetterShieldLootModifier;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -21,7 +23,6 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.particle.DefaultParticleType;
-import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -60,7 +61,7 @@ public class Bettershield implements ModInitializer {
 
 	public static final DefaultParticleType STUN_STAR_PARTICLE = FabricParticleTypes.simple();
 	public static final DefaultParticleType SPARK_PARTICLE = FabricParticleTypes.simple();
-	public static final DefaultParticleType CLOUD_PARTICLE = FabricParticleTypes.simple(); // NEW CLOUD PARTICLE
+	public static final DefaultParticleType CLOUD_PARTICLE = FabricParticleTypes.simple();
 
 	public static final EntityType<ThrownShieldEntity> THROWN_SHIELD_ENTITY_TYPE = Registry.register(
 			Registries.ENTITY_TYPE,
@@ -97,10 +98,12 @@ public class Bettershield implements ModInitializer {
 		BetterShieldLootModifier.register();
 		nel.bettershield.registry.BetterShieldCriteria.register();
 
+		BetterShieldItems.register();
+
 		Registry.register(Registries.STATUS_EFFECT, new Identifier(MOD_ID, "stun"), STUN_EFFECT);
 		Registry.register(Registries.PARTICLE_TYPE, new Identifier(MOD_ID, "stun_star"), STUN_STAR_PARTICLE);
 		Registry.register(Registries.PARTICLE_TYPE, new Identifier(MOD_ID, "spark"), SPARK_PARTICLE);
-		Registry.register(Registries.PARTICLE_TYPE, new Identifier(MOD_ID, "cloud"), CLOUD_PARTICLE); // REGISTER CLOUD
+		Registry.register(Registries.PARTICLE_TYPE, new Identifier(MOD_ID, "cloud"), CLOUD_PARTICLE);
 
 		// --- SHIELD THROW ---
 		ServerPlayNetworking.registerGlobalReceiver(PACKET_SHIELD_THROW, (server, player, handler, buf, responseSender) -> {
@@ -119,11 +122,10 @@ public class Bettershield implements ModInitializer {
 					ItemStack shieldToThrow = null;
 					boolean isOffhand = false;
 
-					if (mainStack.isOf(Items.SHIELD) && EnchantmentHelper.getLevel(Enchantments.LOYALTY, mainStack) > 0) {
+					if (mainStack.getItem() instanceof net.minecraft.item.ShieldItem && EnchantmentHelper.getLevel(Enchantments.LOYALTY, mainStack) > 0) {
 						shieldToThrow = mainStack;
 						isOffhand = false;
-					}
-					else if (offStack.isOf(Items.SHIELD) && EnchantmentHelper.getLevel(Enchantments.LOYALTY, offStack) > 0) {
+					} else if (offStack.getItem() instanceof net.minecraft.item.ShieldItem && EnchantmentHelper.getLevel(Enchantments.LOYALTY, offStack) > 0) {
 						shieldToThrow = offStack;
 						isOffhand = true;
 					}
@@ -157,7 +159,9 @@ public class Bettershield implements ModInitializer {
 						int masterineLevel = EnchantmentHelper.getLevel(BetterShieldEnchantments.MASTERINE, shieldToThrow);
 						int baseCd = config.cooldowns.throwCooldown;
 						int finalCd = (int) (baseCd * (1.0f - (masterineLevel * 0.20f)));
-						triggerCooldown(player, 5, finalCd);
+
+						// FIX: Pass shieldToThrow, as the player's hand is now EMPTY!
+						triggerCooldown(player, shieldToThrow, 5, finalCd);
 
 						float pitch = 0.8f + (ratio * 0.4f);
 						player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ITEM_TRIDENT_THROW, SoundCategory.PLAYERS, 1.0F, pitch);
@@ -172,25 +176,28 @@ public class Bettershield implements ModInitializer {
 				if (player != null) {
 					BetterShieldConfig config = getConfig();
 					ItemStack shieldStack = null;
-					if (player.getMainHandStack().isOf(Items.SHIELD)) shieldStack = player.getMainHandStack();
-					else if (player.getOffHandStack().isOf(Items.SHIELD)) shieldStack = player.getOffHandStack();
+					if (player.getMainHandStack().getItem() instanceof net.minecraft.item.ShieldItem)
+						shieldStack = player.getMainHandStack();
+					else if (player.getOffHandStack().getItem() instanceof net.minecraft.item.ShieldItem)
+						shieldStack = player.getOffHandStack();
 
 					if (shieldStack != null) {
 						long now = player.getWorld().getTime();
 
 						if (player.isOnGround()) {
+							// --- BASH ---
 							if (BASH_COOLDOWN.containsKey(player.getUuid())) {
 								if (now < BASH_COOLDOWN.get(player.getUuid())) return;
 							}
 
 							Vec3d rotation = player.getRotationVector();
 							double bashSpeed = 1.5;
-							if (config.funCombos.allowVerticalBash) player.setVelocity(rotation.x * bashSpeed, rotation.y * bashSpeed, rotation.z * bashSpeed);
+							if (config.funCombos.allowVerticalBash)
+								player.setVelocity(rotation.x * bashSpeed, rotation.y * bashSpeed, rotation.z * bashSpeed);
 							else player.setVelocity(rotation.x * bashSpeed, 0, rotation.z * bashSpeed);
 							player.velocityModified = true;
 
 							if (player.getWorld() instanceof ServerWorld serverWorld) {
-								// 1. Send Trail Packet (For lingering effect)
 								PacketByteBuf trailBuf = PacketByteBufs.create();
 								trailBuf.writeInt(player.getId());
 								trailBuf.writeInt(5);
@@ -200,18 +207,11 @@ public class Bettershield implements ModInitializer {
 									}
 								});
 
-								// 2. Initial Burst (Server Side - Immediate Feedback)
 								double offset = 0.5;
 								double px = player.getX() - (rotation.x * offset);
 								double py = player.getY() + 0.1;
 								double pz = player.getZ() - (rotation.z * offset);
-
-								serverWorld.spawnParticles(Bettershield.CLOUD_PARTICLE,
-										px, py, pz,
-										5,             // Count
-										0.2, 0.1, 0.2, // Spread
-										0.02           // Speed
-								);
+								serverWorld.spawnParticles(Bettershield.CLOUD_PARTICLE, px, py, pz, 5, 0.2, 0.1, 0.2, 0.02);
 							}
 
 							Vec3d pos = player.getPos().add(rotation.multiply(1.5));
@@ -219,6 +219,12 @@ public class Bettershield implements ModInitializer {
 
 							int densityLevel = EnchantmentHelper.getLevel(BetterShieldEnchantments.SHIELD_DENSITY, shieldStack);
 							float damageMult = 1.0f + (densityLevel * 0.10f);
+
+							// --- TIER BONUS CHECK ---
+							if (shieldStack.getItem() instanceof ModShieldItem modShield) {
+								damageMult += modShield.getDamageBonus();
+							}
+
 							float baseDamage = (float) config.combat.bashDamage;
 							float finalDamage = baseDamage * damageMult;
 
@@ -234,7 +240,7 @@ public class Bettershield implements ModInitializer {
 										PacketByteBuf stunBuf = PacketByteBufs.create();
 										stunBuf.writeInt(living.getId());
 										stunBuf.writeInt(config.stunMechanics.stunDuration);
-										player.getWorld().getPlayers().forEach(p -> ServerPlayNetworking.send((net.minecraft.server.network.ServerPlayerEntity)p, PACKET_STUN_MOBS, stunBuf));
+										player.getWorld().getPlayers().forEach(p -> ServerPlayNetworking.send((net.minecraft.server.network.ServerPlayerEntity) p, PACKET_STUN_MOBS, stunBuf));
 									}
 								}
 							}
@@ -243,9 +249,11 @@ public class Bettershield implements ModInitializer {
 							int masterineLevel = EnchantmentHelper.getLevel(BetterShieldEnchantments.MASTERINE, shieldStack);
 							int baseCd = config.cooldowns.bashCooldown;
 							int finalCd = (int) (baseCd * (1.0f - (masterineLevel * 0.20f)));
-							triggerCooldown(player, 1, finalCd);
+
+							triggerCooldown(player, shieldStack, 1, finalCd);
 
 						} else {
+							// --- SLAM ---
 							if (player.isTouchingWater()) return;
 							if (SLAM_COOLDOWN.containsKey(player.getUuid())) {
 								if (now < SLAM_COOLDOWN.get(player.getUuid())) return;
@@ -265,7 +273,8 @@ public class Bettershield implements ModInitializer {
 							int masterineLevel = EnchantmentHelper.getLevel(BetterShieldEnchantments.MASTERINE, shieldStack);
 							int baseCd = config.cooldowns.slamCooldown;
 							int finalCd = (int) (baseCd * (1.0f - (masterineLevel * 0.20f)));
-							triggerCooldown(player, 2, finalCd);
+
+							triggerCooldown(player, shieldStack, 2, finalCd);
 						}
 					}
 				}
@@ -273,17 +282,39 @@ public class Bettershield implements ModInitializer {
 		});
 	}
 
-	public static void triggerCooldown(PlayerEntity player, int type, int ticks) {
-		long expiry = player.getWorld().getTime() + ticks;
-		if (type == 1) { BASH_COOLDOWN.put(player.getUuid(), expiry); BASH_MAX.put(player.getUuid(), ticks); }
-		if (type == 2) { SLAM_COOLDOWN.put(player.getUuid(), expiry); SLAM_MAX.put(player.getUuid(), ticks); }
-		if (type == 3) { PARRY_MELEE_COOLDOWN.put(player.getUuid(), expiry); PARRY_MELEE_MAX.put(player.getUuid(), ticks); }
-		if (type == 4) { PARRY_PROJECTILE_COOLDOWN.put(player.getUuid(), expiry); PARRY_PROJECTILE_MAX.put(player.getUuid(), ticks); }
-		if (type == 5) { THROW_COOLDOWN.put(player.getUuid(), expiry); THROW_MAX.put(player.getUuid(), ticks); }
+	/**
+	 * UPDATED: Accepts ItemStack explicitly to ensure reductions apply even if hand is empty (e.g. throw)
+	 */
+	public static void triggerCooldown(PlayerEntity player, ItemStack shieldStack, int type, int ticks) {
+		// --- COOLDOWN REDUCTION CHECK ---
+		float reduction = 0.0f;
+
+		// Check the passed shield stack first (Most reliable)
+		if (shieldStack != null && !shieldStack.isEmpty() && shieldStack.getItem() instanceof ModShieldItem modShield) {
+			reduction = modShield.getCooldownReduction();
+		}
+		// Fallback checks
+		else if (player.getActiveItem().getItem() instanceof ModShieldItem modShield) {
+			reduction = modShield.getCooldownReduction();
+		} else if ((player.getMainHandStack().getItem() instanceof ModShieldItem modShield)) {
+			reduction = modShield.getCooldownReduction();
+		} else if ((player.getOffHandStack().getItem() instanceof ModShieldItem modShield)) {
+			reduction = modShield.getCooldownReduction();
+		}
+		// -------------------------------
+
+		int finalTicks = (int) (ticks * (1.0f - reduction));
+		long expiry = player.getWorld().getTime() + finalTicks;
+
+		if (type == 1) { BASH_COOLDOWN.put(player.getUuid(), expiry); BASH_MAX.put(player.getUuid(), finalTicks); }
+		if (type == 2) { SLAM_COOLDOWN.put(player.getUuid(), expiry); SLAM_MAX.put(player.getUuid(), finalTicks); }
+		if (type == 3) { PARRY_MELEE_COOLDOWN.put(player.getUuid(), expiry); PARRY_MELEE_MAX.put(player.getUuid(), finalTicks); }
+		if (type == 4) { PARRY_PROJECTILE_COOLDOWN.put(player.getUuid(), expiry); PARRY_PROJECTILE_MAX.put(player.getUuid(), finalTicks); }
+		if (type == 5) { THROW_COOLDOWN.put(player.getUuid(), expiry); THROW_MAX.put(player.getUuid(), finalTicks); }
 
 		PacketByteBuf buf = PacketByteBufs.create();
 		buf.writeInt(type);
-		buf.writeInt(ticks);
+		buf.writeInt(finalTicks);
 		ServerPlayNetworking.send((net.minecraft.server.network.ServerPlayerEntity) player, PACKET_SYNC_COOLDOWN, buf);
 	}
 

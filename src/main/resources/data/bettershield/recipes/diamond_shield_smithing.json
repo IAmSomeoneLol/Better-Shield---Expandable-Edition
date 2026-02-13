@@ -1,0 +1,12 @@
+{
+  "type": "bettershield:smithing_no_template",
+  "base": {
+    "item": "minecraft:shield"
+  },
+  "addition": {
+    "item": "minecraft:diamond"
+  },
+  "result": {
+    "item": "bettershield:diamond_shield"
+  }
+}

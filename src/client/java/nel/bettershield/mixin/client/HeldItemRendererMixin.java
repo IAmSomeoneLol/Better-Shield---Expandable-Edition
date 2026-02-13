@@ -1,6 +1,7 @@
 package nel.bettershield.mixin.client;
 
 import nel.bettershield.BettershieldClient;
+import nel.bettershield.registry.BetterShieldItems; // Import your items
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.item.HeldItemRenderer;
 import net.minecraft.client.render.model.json.ModelTransformationMode;
@@ -21,17 +22,22 @@ public class HeldItemRendererMixin {
             at = @At("HEAD"))
     private void onRenderItem(LivingEntity entity, ItemStack stack, ModelTransformationMode renderMode, boolean leftHanded, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, CallbackInfo ci) {
 
-        // 1. Check if we are rendering a Shield in First Person
+        // 1. Check if we are rendering in First Person
         boolean isFirstPerson = (renderMode == ModelTransformationMode.FIRST_PERSON_RIGHT_HAND || renderMode == ModelTransformationMode.FIRST_PERSON_LEFT_HAND);
 
-        if (isFirstPerson && stack.isOf(Items.SHIELD) && BettershieldClient.isChargingThrow) {
+        // 2. Check if the item is ANY valid shield (Vanilla OR Modded)
+        boolean isVanilla = stack.isOf(Items.SHIELD);
+        boolean isDiamond = stack.isOf(BetterShieldItems.DIAMOND_SHIELD);
+        boolean isNetherite = stack.isOf(BetterShieldItems.NETHERITE_SHIELD);
 
-            // 2. Calculate Charge Ratio
+        if (isFirstPerson && (isVanilla || isDiamond || isNetherite) && BettershieldClient.isChargingThrow) {
+
+            // 3. Calculate Charge Ratio
             float maxCharge = 20.0f;
             float ratio = Math.min(1.0f, (BettershieldClient.chargeTicks) / maxCharge);
 
             if (ratio > 0.1f) {
-                // 3. Apply "Wind Up" Animation
+                // 4. Apply "Wind Up" Animation
 
                 // Shake at max charge
                 if (ratio > 0.8f) {

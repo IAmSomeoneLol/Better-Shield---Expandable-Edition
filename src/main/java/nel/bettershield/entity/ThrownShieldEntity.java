@@ -2,7 +2,8 @@ package nel.bettershield.entity;
 
 import nel.bettershield.BetterShieldConfig;
 import nel.bettershield.Bettershield;
-import nel.bettershield.registry.BetterShieldCriteria; // NEW IMPORT
+import nel.bettershield.item.ModShieldItem; // NEW IMPORT
+import nel.bettershield.registry.BetterShieldCriteria;
 import nel.bettershield.registry.BetterShieldEnchantments;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -169,8 +170,21 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
         Entity target = entityHitResult.getEntity();
         float damage = this.impactDamage;
 
+        // --- CALCULATE DAMAGE BONUSES ---
+        float damageMult = 1.0f;
+
+        // 1. Shield Density Enchantment
         int density = EnchantmentHelper.getLevel(BetterShieldEnchantments.SHIELD_DENSITY, this.getStack());
-        damage += (damage * (density * 0.1f));
+        damageMult += (density * 0.1f);
+
+        // 2. Tier Bonus (Diamond/Netherite)
+        if (this.getStack().getItem() instanceof ModShieldItem modShield) {
+            damageMult += modShield.getDamageBonus();
+        }
+
+        // Apply Multipliers
+        damage *= damageMult;
+        // -------------------------------
 
         Entity owner = this.getOwner();
         if (owner instanceof LivingEntity livingOwner) {
@@ -191,14 +205,10 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
 
             // --- ADVANCEMENT TRIGGERS ---
             if (owner instanceof ServerPlayerEntity serverPlayer) {
-                // 1. A Throwaway Captain Joke (Loyalty + Hit)
                 if (EnchantmentHelper.getLevel(Enchantments.LOYALTY, this.getStack()) > 0) {
                     BetterShieldCriteria.SHIELD_THROW_HIT.trigger(serverPlayer);
                 }
 
-                // 2. CAPTAIN AMERICA (3rd Hit in one throw)
-                // We increment later, so currently hitting index 'entitiesHitCount'.
-                // If entitiesHitCount is 2, this is the 3rd hit (0, 1, 2).
                 if (this.entitiesHitCount == 2) {
                     BetterShieldCriteria.CAPTAIN_AMERICA.trigger(serverPlayer);
                 }

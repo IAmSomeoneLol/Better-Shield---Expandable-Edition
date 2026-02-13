@@ -20,7 +20,10 @@
 		"PiercingEnchantmentMixin",
 		"EnchantmentHelperMixin",
 		"ExplosiveParryMixin",
-		"SwiftSneakMixin"
+		"SwiftSneakMixin",
+		"FireResistanceMixin",
+		"ShieldDecorationRecipeMixin",
+		"ActiveArmorMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

@@ -1,0 +1,20 @@
+{
+  "sources": [
+    {
+      "type": "single",
+      "resource": "bettershield:entity/diamond_shield_base"
+    },
+    {
+      "type": "single",
+      "resource": "bettershield:entity/diamond_shield_base_nopattern"
+    },
+    {
+      "type": "single",
+      "resource": "bettershield:entity/netherite_shield_base"
+    },
+    {
+      "type": "single",
+      "resource": "bettershield:entity/netherite_shield_base_nopattern"
+    }
+  ]
+}

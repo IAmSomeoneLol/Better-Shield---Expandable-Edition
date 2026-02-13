@@ -14,6 +14,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.*;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.item.ShieldItem;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.potion.Potion;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -44,6 +45,10 @@ public abstract class ShieldParryMixin {
         if (user instanceof PlayerEntity player && this.isBlocking()) {
 
             ItemStack activeShield = this.getActiveItem();
+
+            // Safety check
+            if (activeShield.isEmpty()) activeShield = player.getMainHandStack();
+
             int levelParryful = EnchantmentHelper.getLevel(BetterShieldEnchantments.PARRYFUL, activeShield);
             int parryWindow = config.combat.parryWindow + (levelParryful * 4);
 
@@ -65,10 +70,7 @@ public abstract class ShieldParryMixin {
 
                 int levelMasterine = EnchantmentHelper.getLevel(BetterShieldEnchantments.MASTERINE, activeShield);
 
-                // ==========================
-                // --- ARROW / TRIDENT DEFLECT ---
-                // ==========================
-                // Note: Fireballs/Wither Skulls are now handled in ExplosiveParryMixin to prevent explosions.
+                // --- PROJECTILE PARRY ---
                 if (source.getSource() instanceof ProjectileEntity oldProjectile &&
                         !(oldProjectile instanceof ExplosiveProjectileEntity) &&
                         !(oldProjectile instanceof SmallFireballEntity)) {
@@ -108,29 +110,27 @@ public abstract class ShieldParryMixin {
                             oldProjectile.discard();
                         }
 
-                        // --- PARTICLE EFFECT (SPARKS) ---
                         if (player.getWorld() instanceof ServerWorld serverWorld) {
                             serverWorld.spawnParticles(Bettershield.SPARK_PARTICLE,
                                     player.getX(), player.getEyeY() - 0.2, player.getZ(),
                                     10, 0.3, 0.3, 0.3, 0.1);
                         }
-                        // --------------------------------
 
                         int baseCd = config.cooldowns.parryProjectileCooldown;
                         int finalCd = (int) (baseCd * (1.0f - (levelMasterine * 0.2f)));
-                        Bettershield.triggerCooldown(player, 4, finalCd);
+
+                        // Pass activeShield to apply cooldown reduction
+                        Bettershield.triggerCooldown(player, activeShield, 4, finalCd);
                     }
 
                     Bettershield.setParryDebounce(player);
-                    player.getItemCooldownManager().set(Items.SHIELD, 0);
+                    player.getItemCooldownManager().set(activeShield.getItem(), 0);
                     this.damageShield(player, 1);
                     player.getWorld().playSound(null, player.getBlockPos(), SoundEvents.ITEM_TRIDENT_HIT, SoundCategory.PLAYERS, 1.0f, 1.0f);
                     return;
                 }
 
-                // ==========================
                 // --- MELEE PARRY ---
-                // ==========================
                 if (source.getAttacker() instanceof LivingEntity attacker) {
                     if (Bettershield.PARRY_MELEE_COOLDOWN.containsKey(player.getUuid())) {
                         if (player.getWorld().getTime() < Bettershield.PARRY_MELEE_COOLDOWN.get(player.getUuid())) {
@@ -153,21 +153,21 @@ public abstract class ShieldParryMixin {
                             serverWorld.getChunkManager().sendToNearbyPlayers(attacker, ServerPlayNetworking.createS2CPacket(Bettershield.PACKET_STUN_MOBS, buf));
                         }
 
-                        // --- PARTICLE EFFECT (SPARKS) ---
                         if (player.getWorld() instanceof ServerWorld serverWorld) {
                             serverWorld.spawnParticles(Bettershield.SPARK_PARTICLE,
                                     player.getX(), player.getEyeY() - 0.2, player.getZ(),
                                     10, 0.3, 0.3, 0.3, 0.1);
                         }
-                        // --------------------------------
 
                         int baseCd = config.cooldowns.parryMeleeCooldown;
                         int finalCd = (int) (baseCd * (1.0f - (levelMasterine * 0.2f)));
-                        Bettershield.triggerCooldown(player, 3, finalCd);
+
+                        // Pass activeShield to apply cooldown reduction
+                        Bettershield.triggerCooldown(player, activeShield, 3, finalCd);
                     }
 
                     Bettershield.setParryDebounce(player);
-                    player.getItemCooldownManager().set(Items.SHIELD, 0);
+                    player.getItemCooldownManager().set(activeShield.getItem(), 0);
                     this.damageShield(player, 1);
 
                     player.getWorld().playSound(null, player.getBlockPos(), SoundEvents.BLOCK_ANVIL_LAND, SoundCategory.PLAYERS, 1.0f, 1.5f);
@@ -188,19 +188,20 @@ public abstract class ShieldParryMixin {
             ArrowEntity newArrow = new ArrowEntity(world, owner);
             newArrow.initFromStack(new ItemStack(Items.ARROW));
 
-            ArrowEntityAccessor accessor = (ArrowEntityAccessor) oldArrow;
-            Potion potion = accessor.getPotion();
-
-            for (StatusEffectInstance effect : potion.getEffects()) {
-                newArrow.addEffect(new StatusEffectInstance(effect));
-            }
-            Set<StatusEffectInstance> customEffects = accessor.getCustomEffects();
-            if (customEffects != null) {
-                for (StatusEffectInstance effect : customEffects) {
+            // Use the Accessor Interface below
+            if (oldArrow instanceof ArrowEntityAccessor accessor) {
+                Potion potion = accessor.getPotion();
+                for (StatusEffectInstance effect : potion.getEffects()) {
                     newArrow.addEffect(new StatusEffectInstance(effect));
                 }
+                Set<StatusEffectInstance> customEffects = accessor.getCustomEffects(); // THIS WAS THE ERROR FIX
+                if (customEffects != null) {
+                    for (StatusEffectInstance effect : customEffects) {
+                        newArrow.addEffect(new StatusEffectInstance(effect));
+                    }
+                }
+                ((ArrowEntityAccessor) newArrow).invokeSetColor(oldArrow.getColor());
             }
-            ((ArrowEntityAccessor) newArrow).invokeSetColor(oldArrow.getColor());
 
             newArrow.setDamage(oldArrow.getDamage());
             newArrow.setCritical(oldArrow.isCritical());
@@ -215,10 +216,16 @@ public abstract class ShieldParryMixin {
             result = newSpectral;
         }
         else if (old instanceof TridentEntity oldTrident) {
-            ItemStack stack = ((TridentEntityAccessor) oldTrident).getTridentStack();
-            TridentEntity newTrident = new TridentEntity(world, owner, stack.isEmpty() ? new ItemStack(Items.TRIDENT) : stack);
-            newTrident.setDamage(oldTrident.getDamage());
-            result = newTrident;
+            if (oldTrident instanceof TridentEntityAccessor accessor) {
+                ItemStack stack = accessor.getTridentStack();
+                TridentEntity newTrident = new TridentEntity(world, owner, stack.isEmpty() ? new ItemStack(Items.TRIDENT) : stack);
+                newTrident.setDamage(oldTrident.getDamage());
+                result = newTrident;
+            } else {
+                TridentEntity newTrident = new TridentEntity(world, owner, new ItemStack(Items.TRIDENT));
+                newTrident.setDamage(oldTrident.getDamage());
+                result = newTrident;
+            }
         }
 
         if (result != null) {
@@ -233,8 +240,29 @@ public abstract class ShieldParryMixin {
 
     private void damageShield(PlayerEntity player, int amount) {
         ItemStack stack = player.getActiveItem();
-        if (stack.isOf(Items.SHIELD)) {
+        if (stack.getItem() instanceof ShieldItem) {
             stack.damage(amount, player, (p) -> p.sendToolBreakStatus(player.getActiveHand()));
         }
+    }
+
+    // --- ACCESSOR INTERFACES (Mappings Fixed) ---
+
+    @Mixin(ArrowEntity.class)
+    public interface ArrowEntityAccessor {
+        @org.spongepowered.asm.mixin.gen.Accessor("potion")
+        Potion getPotion();
+
+        // FIXED: Renamed "customPotionEffects" to "effects" for 1.20+
+        @org.spongepowered.asm.mixin.gen.Accessor("effects")
+        Set<StatusEffectInstance> getCustomEffects();
+
+        @org.spongepowered.asm.mixin.gen.Invoker("setColor")
+        void invokeSetColor(int color);
+    }
+
+    @Mixin(TridentEntity.class)
+    public interface TridentEntityAccessor {
+        @org.spongepowered.asm.mixin.gen.Accessor("tridentStack")
+        ItemStack getTridentStack();
     }
 }
