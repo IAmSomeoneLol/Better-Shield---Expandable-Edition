@@ -1,5 +1,8 @@
 {
-  "type": "bettershield:smithing_no_template",
+  "type": "minecraft:smithing_transform",
+  "template": {
+    "tag": "minecraft:logs"
+  },
   "base": {
     "item": "minecraft:shield"
   },
