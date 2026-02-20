@@ -5,43 +5,37 @@ import nel.bettershield.Bettershield;
 import net.minecraft.advancement.criterion.AbstractCriterion;
 import net.minecraft.advancement.criterion.AbstractCriterionConditions;
 import net.minecraft.predicate.entity.AdvancementEntityPredicateDeserializer;
-import net.minecraft.predicate.entity.LootContextPredicate; // Correct Import for 1.20.1
+import net.minecraft.predicate.entity.LootContextPredicate;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.Identifier;
+
+import java.util.Optional;
 
 public class BetterShieldCriteria {
 
     // --- TRIGGERS ---
-    public static final CustomTrigger PARRY = new CustomTrigger(new Identifier(Bettershield.MOD_ID, "parry"));
-    public static final CustomTrigger SLAM_MULTI = new CustomTrigger(new Identifier(Bettershield.MOD_ID, "slam_multi"));
-    public static final CustomTrigger REFLECT_KILL = new CustomTrigger(new Identifier(Bettershield.MOD_ID, "reflect_kill"));
-    public static final CustomTrigger SHIELD_THROW_HIT = new CustomTrigger(new Identifier(Bettershield.MOD_ID, "shield_throw_hit"));
-    public static final CustomTrigger CAPTAIN_AMERICA = new CustomTrigger(new Identifier(Bettershield.MOD_ID, "captain_america"));
+    public static CustomTrigger PARRY;
+    public static CustomTrigger SLAM_MULTI;
+    public static CustomTrigger REFLECT_KILL;
+    public static CustomTrigger SHIELD_THROW_HIT;
+    public static CustomTrigger CAPTAIN_AMERICA;
 
     public static void register() {
-        net.minecraft.advancement.criterion.Criteria.register(PARRY);
-        net.minecraft.advancement.criterion.Criteria.register(SLAM_MULTI);
-        net.minecraft.advancement.criterion.Criteria.register(REFLECT_KILL);
-        net.minecraft.advancement.criterion.Criteria.register(SHIELD_THROW_HIT);
-        net.minecraft.advancement.criterion.Criteria.register(CAPTAIN_AMERICA);
+        // --- 1.20.2 FIX: Registration now handles the String ID and Object simultaneously ---
+        PARRY = net.minecraft.advancement.criterion.Criteria.register(Bettershield.MOD_ID + ":parry", new CustomTrigger());
+        SLAM_MULTI = net.minecraft.advancement.criterion.Criteria.register(Bettershield.MOD_ID + ":slam_multi", new CustomTrigger());
+        REFLECT_KILL = net.minecraft.advancement.criterion.Criteria.register(Bettershield.MOD_ID + ":reflect_kill", new CustomTrigger());
+        SHIELD_THROW_HIT = net.minecraft.advancement.criterion.Criteria.register(Bettershield.MOD_ID + ":shield_throw_hit", new CustomTrigger());
+        CAPTAIN_AMERICA = net.minecraft.advancement.criterion.Criteria.register(Bettershield.MOD_ID + ":captain_america", new CustomTrigger());
     }
 
     // --- CUSTOM TRIGGER CLASS ---
     public static class CustomTrigger extends AbstractCriterion<CustomTrigger.Conditions> {
-        private final Identifier id;
 
-        public CustomTrigger(Identifier id) {
-            this.id = id;
-        }
+        // Note: getId() was removed by Mojang in 1.20.2, so we don't need it here anymore!
 
         @Override
-        public Identifier getId() {
-            return id;
-        }
-
-        @Override
-        protected Conditions conditionsFromJson(JsonObject obj, LootContextPredicate playerPredicate, AdvancementEntityPredicateDeserializer predicateDeserializer) {
-            return new Conditions(id, playerPredicate);
+        protected Conditions conditionsFromJson(JsonObject obj, Optional<LootContextPredicate> playerPredicate, AdvancementEntityPredicateDeserializer predicateDeserializer) {
+            return new Conditions(playerPredicate); // Removed ID parameter
         }
 
         public void trigger(ServerPlayerEntity player) {
@@ -49,8 +43,8 @@ public class BetterShieldCriteria {
         }
 
         public static class Conditions extends AbstractCriterionConditions {
-            public Conditions(Identifier id, LootContextPredicate playerPredicate) {
-                super(id, playerPredicate);
+            public Conditions(Optional<LootContextPredicate> playerPredicate) {
+                super(playerPredicate); // Removed ID parameter from superclass
             }
         }
     }

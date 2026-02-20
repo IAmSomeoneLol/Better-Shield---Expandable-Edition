@@ -11,12 +11,13 @@ import net.minecraft.recipe.RecipeSerializer;
 import net.minecraft.recipe.SpecialCraftingRecipe;
 import net.minecraft.recipe.book.CraftingRecipeCategory;
 import net.minecraft.registry.DynamicRegistryManager;
-import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 
 public class BetterShieldDecorationRecipe extends SpecialCraftingRecipe {
-    public BetterShieldDecorationRecipe(Identifier id, CraftingRecipeCategory category) {
-        super(id, category);
+
+    // --- 1.20.2 FIX: Removed 'Identifier id' from constructor ---
+    public BetterShieldDecorationRecipe(CraftingRecipeCategory category) {
+        super(category);
     }
 
     @Override
