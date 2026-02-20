@@ -65,7 +65,34 @@ public abstract class SlamImpactMixin {
 
             ServerWorld world = (ServerWorld) player.getWorld();
 
-            // --- VISUALS ---
+            // ==================================================
+            // --- NEW: RADIAL CLOUD PARTICLES (VARIATION) ---
+            // ==================================================
+            double cloudRadius = 3.0; // Increased to 3 Blocks
+            int cloudCount = 20;
+
+            for (int i = 0; i < cloudCount; i++) {
+                double angle = (2 * Math.PI * i) / cloudCount;
+                double x = player.getX() + Math.cos(angle) * cloudRadius;
+                double z = player.getZ() + Math.sin(angle) * cloudRadius;
+                double y = player.getY();
+
+                // Variation: Random float between 0.10 and 0.50
+                // Logic: 0.1 + (random(0.0 to 1.0) * 0.4) = 0.1 to 0.5
+                float varSize = 0.1f + (world.random.nextFloat() * 0.4f);
+
+                world.spawnParticles(
+                        Bettershield.CLOUD_PARTICLE,
+                        x, y, z,
+                        1,        // Count per point
+                        varSize,  // Spread X (Randomized)
+                        varSize,  // Spread Y (Randomized)
+                        varSize,  // Spread Z (Randomized)
+                        0.05      // Speed
+                );
+            }
+            // ==================================================
+
             BlockPos hitPos = player.getBlockPos().down();
             BlockState state = world.getBlockState(hitPos);
             if (state.isAir() || state.getRenderType() == BlockRenderType.INVISIBLE) {
@@ -79,7 +106,6 @@ public abstract class SlamImpactMixin {
             buf.writeString(Registries.BLOCK.getId(state.getBlock()).toString());
             world.getChunkManager().sendToNearbyPlayers(player, ServerPlayNetworking.createS2CPacket(Bettershield.PACKET_SLAM_EFFECT, buf));
 
-            // --- DAMAGE CALCULATION ---
             int levelDensity = EnchantmentHelper.getLevel(BetterShieldEnchantments.SHIELD_DENSITY, stack);
             float damageMultiplierEnchant = 1.0f + (levelDensity * 0.10f);
 
@@ -90,7 +116,6 @@ public abstract class SlamImpactMixin {
             impactDamage = Math.min(impactDamage, 10.0f);
             impactDamage *= damageMultiplierEnchant;
 
-            // --- AREA OF EFFECT ---
             BetterShieldConfig config = Bettershield.getConfig();
             double radius = config.combat.slamRadius;
             Box box = player.getBoundingBox().expand(radius, 2.0, radius);
@@ -104,7 +129,6 @@ public abstract class SlamImpactMixin {
                     living.addVelocity(0, 0.6, 0);
                     living.velocityModified = true;
 
-                    // UPDATED: Use StunMechanics category
                     if (config.stunMechanics.slamStunEnabled) {
                         living.addStatusEffect(new StatusEffectInstance(Bettershield.STUN_EFFECT, config.stunMechanics.stunDuration, 0, false, false, true));
 
@@ -113,7 +137,6 @@ public abstract class SlamImpactMixin {
                         stunBuf.writeInt(config.stunMechanics.stunDuration);
                         world.getChunkManager().sendToNearbyPlayers(living, ServerPlayNetworking.createS2CPacket(Bettershield.PACKET_STUN_MOBS, stunBuf));
                     }
-
                     entitiesHit++;
                 }
             }

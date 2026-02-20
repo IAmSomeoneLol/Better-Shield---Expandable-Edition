@@ -44,14 +44,20 @@ import java.util.Random;
 
 public class BettershieldClient implements ClientModInitializer {
 
+	// --- RESTORED: STUN MAP & TEXTURE ---
 	private static final Identifier STAR_TEXTURE = new Identifier("bettershield", "textures/particle/stun_star.png");
 	private static final HashMap<Integer, Long> STUNNED_ENTITIES = new HashMap<>();
+
 	private static final HashMap<Integer, Integer> BASH_TRAILS = new HashMap<>();
 	private boolean wasAttackPressed = false;
 	private final Random random = new Random();
 
 	public static int chargeTicks = 0;
 	public static boolean isChargingThrow = false;
+
+	// Cache variables for blacklist
+	private Item lastMainHandItem = null;
+	private boolean isBlacklistedCached = false;
 
 	public static final KeyBinding THROW_SHIELD_KEY = KeyBindingHelper.registerKeyBinding(new KeyBinding(
 			"key.bettershield.throw",
@@ -68,13 +74,9 @@ public class BettershieldClient implements ClientModInitializer {
 		ParticleFactoryRegistry.getInstance().register(Bettershield.SPARK_PARTICLE, SparkParticle.Factory::new);
 		ParticleFactoryRegistry.getInstance().register(Bettershield.CLOUD_PARTICLE, CloudParticle.Factory::new);
 
-		// --- REGISTER CUSTOM SHIELD RENDERERS & PREDICATES ---
-		// This applies the logic to Diamond and Netherite shields
 		registerShieldModel(BetterShieldItems.DIAMOND_SHIELD);
 		registerShieldModel(BetterShieldItems.NETHERITE_SHIELD);
 
-		// --- REGISTER PREDICATES FOR VANILLA SHIELD ---
-		// This makes the vanilla shield animate correctly
 		ModelPredicateProviderRegistry.register(Items.SHIELD, new Identifier("bettershield", "throwing"),
 				(stack, world, entity, seed) -> {
 					if (entity == null || !isChargingThrow) return 0.0F;
@@ -86,9 +88,6 @@ public class BettershieldClient implements ClientModInitializer {
 					if (entity == null || !isChargingThrow) return 0.0F;
 					return (float) chargeTicks / 20.0F;
 				});
-		// ----------------------------------------------
-
-		// NOTE: Texture loading is handled by src/main/resources/assets/minecraft/atlases/shield_patterns.json
 
 		ClientPlayNetworking.registerGlobalReceiver(Bettershield.PACKET_SYNC_COOLDOWN, (client, handler, buf, responseSender) -> {
 			int type = buf.readInt();
@@ -105,6 +104,7 @@ public class BettershieldClient implements ClientModInitializer {
 			});
 		});
 
+		// --- RESTORED: STUN PACKET RECEIVER (Using the Map) ---
 		ClientPlayNetworking.registerGlobalReceiver(Bettershield.PACKET_STUN_MOBS, (client, handler, buf, responseSender) -> {
 			int entityId = buf.readInt();
 			int duration = buf.readInt();
@@ -144,6 +144,7 @@ public class BettershieldClient implements ClientModInitializer {
 			client.execute(() -> { BASH_TRAILS.put(entityId, duration); });
 		});
 
+		// --- RESTORED: WORLD RENDER EVENT ---
 		WorldRenderEvents.AFTER_ENTITIES.register(context -> {
 			MinecraftClient client = MinecraftClient.getInstance();
 			if (client.world == null || client.player == null) return;
@@ -184,11 +185,22 @@ public class BettershieldClient implements ClientModInitializer {
 			boolean blacklisted = false;
 
 			if (offIsShield && !mainIsShield) {
-				BetterShieldConfig config = Bettershield.getConfig();
-				String itemId = Registries.ITEM.getId(main.getItem()).toString();
-				for (String blocked : config.compatibility.mainHandBlacklist) {
-					if (itemId.contains(blocked)) { blacklisted = true; break; }
+				if (main.getItem() != lastMainHandItem) {
+					lastMainHandItem = main.getItem();
+					isBlacklistedCached = false;
+
+					BetterShieldConfig config = Bettershield.getConfig();
+					String itemId = Registries.ITEM.getId(main.getItem()).toString();
+					for (String blocked : config.compatibility.mainHandBlacklist) {
+						if (itemId.contains(blocked)) {
+							isBlacklistedCached = true;
+							break;
+						}
+					}
 				}
+				blacklisted = isBlacklistedCached;
+			} else {
+				lastMainHandItem = null;
 			}
 
 			if (blacklisted) { isChargingThrow = false; chargeTicks = 0; wasAttackPressed = false; return; }
@@ -224,18 +236,15 @@ public class BettershieldClient implements ClientModInitializer {
 	}
 
 	private void registerShieldModel(Item item) {
-		// 1. Blocking Predicate
 		ModelPredicateProviderRegistry.register(item, new Identifier("blocking"),
 				(stack, world, entity, seed) -> entity != null && entity.isUsingItem() && entity.getActiveItem() == stack ? 1.0F : 0.0F);
 
-		// 2. Throwing Predicate (Required for the animation to start)
 		ModelPredicateProviderRegistry.register(item, new Identifier("bettershield", "throwing"),
 				(stack, world, entity, seed) -> {
 					if (entity == null || !isChargingThrow) return 0.0F;
 					return (entity.getMainHandStack() == stack || entity.getOffHandStack() == stack) ? 1.0F : 0.0F;
 				});
 
-		// 3. Pull Predicate (Required for 0-100% progress)
 		ModelPredicateProviderRegistry.register(item, new Identifier("bettershield", "pull"),
 				(stack, world, entity, seed) -> {
 					if (entity == null || !isChargingThrow) return 0.0F;
@@ -245,6 +254,7 @@ public class BettershieldClient implements ClientModInitializer {
 		BuiltinItemRendererRegistry.INSTANCE.register(item, new ModShieldRenderer());
 	}
 
+	// --- RESTORED: RENDER HALO METHOD ---
 	private void renderHalo(WorldRenderContext context, LivingEntity entity) {
 		MatrixStack matrices = context.matrixStack();
 		Vec3d cameraPos = context.camera().getPos();
@@ -274,6 +284,7 @@ public class BettershieldClient implements ClientModInitializer {
 		matrices.pop();
 	}
 
+	// --- RESTORED: DRAW QUAD METHOD ---
 	private void drawQuad(MatrixStack matrices, VertexConsumer buffer, float size) {
 		MatrixStack.Entry entry = matrices.peek();
 		int light = 15728880;

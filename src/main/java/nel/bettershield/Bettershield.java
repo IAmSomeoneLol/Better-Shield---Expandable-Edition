@@ -2,11 +2,12 @@ package nel.bettershield;
 
 import nel.bettershield.effect.StunStatusEffect;
 import nel.bettershield.entity.ThrownShieldEntity;
-import nel.bettershield.item.ModShieldItem; // NEW IMPORT
+import nel.bettershield.item.ModShieldItem;
 import nel.bettershield.registry.BetterShieldEnchantments;
 import nel.bettershield.registry.BetterShieldItems;
 import nel.bettershield.registry.BetterShieldLootModifier;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents; // NEW IMPORT
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
 import net.fabricmc.fabric.api.particle.v1.FabricParticleTypes;
@@ -160,7 +161,6 @@ public class Bettershield implements ModInitializer {
 						int baseCd = config.cooldowns.throwCooldown;
 						int finalCd = (int) (baseCd * (1.0f - (masterineLevel * 0.20f)));
 
-						// FIX: Pass shieldToThrow, as the player's hand is now EMPTY!
 						triggerCooldown(player, shieldToThrow, 5, finalCd);
 
 						float pitch = 0.8f + (ratio * 0.4f);
@@ -220,7 +220,6 @@ public class Bettershield implements ModInitializer {
 							int densityLevel = EnchantmentHelper.getLevel(BetterShieldEnchantments.SHIELD_DENSITY, shieldStack);
 							float damageMult = 1.0f + (densityLevel * 0.10f);
 
-							// --- TIER BONUS CHECK ---
 							if (shieldStack.getItem() instanceof ModShieldItem modShield) {
 								damageMult += modShield.getDamageBonus();
 							}
@@ -280,20 +279,33 @@ public class Bettershield implements ModInitializer {
 				}
 			});
 		});
+
+		// --- NEW: SERVER DISCONNECT CLEANUP (PREVENTS MEMORY LEAKS) ---
+		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+			UUID uuid = handler.player.getUuid();
+			PARRY_DEBOUNCE.remove(uuid);
+			BASH_COOLDOWN.remove(uuid);
+			SLAM_COOLDOWN.remove(uuid);
+			PARRY_MELEE_COOLDOWN.remove(uuid);
+			PARRY_PROJECTILE_COOLDOWN.remove(uuid);
+			THROW_COOLDOWN.remove(uuid);
+
+			BASH_MAX.remove(uuid);
+			SLAM_MAX.remove(uuid);
+			PARRY_MELEE_MAX.remove(uuid);
+			PARRY_PROJECTILE_MAX.remove(uuid);
+			THROW_MAX.remove(uuid);
+
+			SLAM_START_Y.remove(uuid);
+		});
 	}
 
-	/**
-	 * UPDATED: Accepts ItemStack explicitly to ensure reductions apply even if hand is empty (e.g. throw)
-	 */
 	public static void triggerCooldown(PlayerEntity player, ItemStack shieldStack, int type, int ticks) {
-		// --- COOLDOWN REDUCTION CHECK ---
 		float reduction = 0.0f;
 
-		// Check the passed shield stack first (Most reliable)
 		if (shieldStack != null && !shieldStack.isEmpty() && shieldStack.getItem() instanceof ModShieldItem modShield) {
 			reduction = modShield.getCooldownReduction();
 		}
-		// Fallback checks
 		else if (player.getActiveItem().getItem() instanceof ModShieldItem modShield) {
 			reduction = modShield.getCooldownReduction();
 		} else if ((player.getMainHandStack().getItem() instanceof ModShieldItem modShield)) {
@@ -301,7 +313,6 @@ public class Bettershield implements ModInitializer {
 		} else if ((player.getOffHandStack().getItem() instanceof ModShieldItem modShield)) {
 			reduction = modShield.getCooldownReduction();
 		}
-		// -------------------------------
 
 		int finalTicks = (int) (ticks * (1.0f - reduction));
 		long expiry = player.getWorld().getTime() + finalTicks;
