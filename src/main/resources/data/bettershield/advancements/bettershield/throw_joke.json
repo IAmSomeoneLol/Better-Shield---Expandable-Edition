@@ -2,7 +2,13 @@
   "display": {
     "icon": {
       "id": "minecraft:shield",
-      "components": "{Enchantments:[{id:\"minecraft:loyalty\",lvl:1}]}"
+      "components": {
+        "minecraft:enchantments": {
+          "levels": {
+            "minecraft:loyalty": 1
+          }
+        }
+      }
     },
     "title": {
       "text": "A Throwaway Captain Joke"

@@ -2,7 +2,14 @@
   "display": {
     "icon": {
       "id": "minecraft:shield",
-      "components": "{Enchantments:[{id:\"minecraft:loyalty\",lvl:3},{id:\"minecraft:piercing\",lvl:4}]}"
+      "components": {
+        "minecraft:enchantments": {
+          "levels": {
+            "minecraft:loyalty": 3,
+            "minecraft:piercing": 4
+          }
+        }
+      }
     },
     "title": {
       "text": "CAPTAIN AMERICA"
