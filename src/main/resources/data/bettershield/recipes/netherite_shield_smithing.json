@@ -10,6 +10,6 @@
     "item": "minecraft:netherite_ingot"
   },
   "result": {
-    "item": "bettershield:netherite_shield"
+    "id": "bettershield:netherite_shield"
   }
 }

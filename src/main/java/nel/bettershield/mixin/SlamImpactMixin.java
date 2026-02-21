@@ -4,7 +4,6 @@ import nel.bettershield.BetterShieldConfig;
 import nel.bettershield.Bettershield;
 import nel.bettershield.registry.BetterShieldCriteria;
 import nel.bettershield.registry.BetterShieldEnchantments;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.block.BlockRenderType;
 import net.minecraft.block.BlockState;
@@ -17,7 +16,6 @@ import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ShieldItem;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -65,10 +63,7 @@ public abstract class SlamImpactMixin {
 
             ServerWorld world = (ServerWorld) player.getWorld();
 
-            // ==================================================
-            // --- NEW: RADIAL CLOUD PARTICLES (VARIATION) ---
-            // ==================================================
-            double cloudRadius = 3.0; // Increased to 3 Blocks
+            double cloudRadius = 3.0;
             int cloudCount = 20;
 
             for (int i = 0; i < cloudCount; i++) {
@@ -77,21 +72,18 @@ public abstract class SlamImpactMixin {
                 double z = player.getZ() + Math.sin(angle) * cloudRadius;
                 double y = player.getY();
 
-                // Variation: Random float between 0.10 and 0.50
-                // Logic: 0.1 + (random(0.0 to 1.0) * 0.4) = 0.1 to 0.5
                 float varSize = 0.1f + (world.random.nextFloat() * 0.4f);
 
                 world.spawnParticles(
                         Bettershield.CLOUD_PARTICLE,
                         x, y, z,
-                        1,        // Count per point
-                        varSize,  // Spread X (Randomized)
-                        varSize,  // Spread Y (Randomized)
-                        varSize,  // Spread Z (Randomized)
-                        0.05      // Speed
+                        1,
+                        varSize,
+                        varSize,
+                        varSize,
+                        0.05
                 );
             }
-            // ==================================================
 
             BlockPos hitPos = player.getBlockPos().down();
             BlockState state = world.getBlockState(hitPos);
@@ -99,12 +91,11 @@ public abstract class SlamImpactMixin {
                 state = Blocks.COBBLESTONE.getDefaultState();
             }
 
-            PacketByteBuf buf = PacketByteBufs.create();
-            buf.writeDouble(player.getX());
-            buf.writeDouble(player.getY());
-            buf.writeDouble(player.getZ());
-            buf.writeString(Registries.BLOCK.getId(state.getBlock()).toString());
-            world.getChunkManager().sendToNearbyPlayers(player, ServerPlayNetworking.createS2CPacket(Bettershield.PACKET_SLAM_EFFECT, buf));
+            // --- 1.20.5 FIX: Slam Effect Payload ---
+            Bettershield.SlamEffectPayload slamPayload = new Bettershield.SlamEffectPayload(
+                    player.getX(), player.getY(), player.getZ(), Registries.BLOCK.getId(state.getBlock()).toString()
+            );
+            world.getPlayers().forEach(p -> ServerPlayNetworking.send((ServerPlayerEntity)p, slamPayload));
 
             int levelDensity = EnchantmentHelper.getLevel(BetterShieldEnchantments.SHIELD_DENSITY, stack);
             float damageMultiplierEnchant = 1.0f + (levelDensity * 0.10f);
@@ -130,12 +121,12 @@ public abstract class SlamImpactMixin {
                     living.velocityModified = true;
 
                     if (config.stunMechanics.slamStunEnabled) {
-                        living.addStatusEffect(new StatusEffectInstance(Bettershield.STUN_EFFECT, config.stunMechanics.stunDuration, 0, false, false, true));
+                        // --- 1.20.5 FIX: Stun Payload & RegistryEntry ---
+                        var stunEntry = Registries.STATUS_EFFECT.getEntry(Bettershield.STUN_EFFECT);
+                        living.addStatusEffect(new StatusEffectInstance(stunEntry, config.stunMechanics.stunDuration, 0, false, false, true));
 
-                        PacketByteBuf stunBuf = PacketByteBufs.create();
-                        stunBuf.writeInt(living.getId());
-                        stunBuf.writeInt(config.stunMechanics.stunDuration);
-                        world.getChunkManager().sendToNearbyPlayers(living, ServerPlayNetworking.createS2CPacket(Bettershield.PACKET_STUN_MOBS, stunBuf));
+                        Bettershield.StunMobsPayload stunPayload = new Bettershield.StunMobsPayload(living.getId(), config.stunMechanics.stunDuration);
+                        world.getPlayers().forEach(p -> ServerPlayNetworking.send((ServerPlayerEntity)p, stunPayload));
                     }
                     entitiesHit++;
                 }

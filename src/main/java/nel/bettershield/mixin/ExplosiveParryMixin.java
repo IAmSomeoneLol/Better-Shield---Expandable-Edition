@@ -4,7 +4,6 @@ import nel.bettershield.BetterShieldConfig;
 import nel.bettershield.Bettershield;
 import nel.bettershield.registry.BetterShieldCriteria;
 import nel.bettershield.registry.BetterShieldEnchantments;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.LivingEntity;
@@ -12,13 +11,13 @@ import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.*;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.nbt.NbtCompound; // Import NBT
-import net.minecraft.network.PacketByteBuf;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.util.Hand;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.Vec3d;
@@ -38,7 +37,6 @@ public abstract class ExplosiveParryMixin {
 
         if (hitResult.getType() == HitResult.Type.ENTITY && ((EntityHitResult)hitResult).getEntity() instanceof PlayerEntity player) {
 
-            // CHECK PARRY CONDITIONS
             if (player.isBlocking()) {
                 BetterShieldConfig config = Bettershield.getConfig();
                 ItemStack activeShield = player.getActiveItem();
@@ -66,36 +64,27 @@ public abstract class ExplosiveParryMixin {
                     }
 
                     if (config.stunMechanics.deflectStunEnabled && self.getOwner() instanceof LivingEntity shooter) {
-                        shooter.addStatusEffect(new StatusEffectInstance(Bettershield.STUN_EFFECT, config.stunMechanics.stunDuration, 0, false, false, true));
-                        PacketByteBuf buf = PacketByteBufs.create();
-                        buf.writeInt(shooter.getId());
-                        buf.writeInt(config.stunMechanics.stunDuration);
-                        ((ServerWorld)player.getWorld()).getChunkManager().sendToNearbyPlayers(shooter, ServerPlayNetworking.createS2CPacket(Bettershield.PACKET_STUN_MOBS, buf));
+                        var stunEntry = Registries.STATUS_EFFECT.getEntry(Bettershield.STUN_EFFECT);
+                        shooter.addStatusEffect(new StatusEffectInstance(stunEntry, config.stunMechanics.stunDuration, 0, false, false, true));
+
+                        Bettershield.StunMobsPayload stunPayload = new Bettershield.StunMobsPayload(shooter.getId(), config.stunMechanics.stunDuration);
+                        player.getWorld().getPlayers().forEach(p -> ServerPlayNetworking.send((ServerPlayerEntity)p, stunPayload));
                     }
 
-                    // --- REFLECTION LOGIC (NBT METHOD - CRASH FIX) ---
                     Vec3d dir = player.getRotationVector();
                     ProjectileEntity newProj = null;
 
                     if (self instanceof FireballEntity oldBall) {
-                        // 1. Write old data to NBT tag
                         NbtCompound nbt = new NbtCompound();
                         oldBall.writeCustomDataToNbt(nbt);
 
-                        // 2. Read power safely (Default to 1 if missing)
-                        // Vanilla key for fireball strength is "ExplosionPower" or "Power" depending on version,
-                        // but 1.20 usually maps to "ExplosionPower" in NBT structure.
-                        // We check both to be safe, or just instantiate a standard one.
                         int power = 1;
                         if (nbt.contains("ExplosionPower")) {
                             power = nbt.getInt("ExplosionPower");
-                        } else if (nbt.contains("Power", 9)) { // List tag 9
-                            // "Power" is often the acceleration vector, not explosion size.
-                            // Standard ghast ball is power 1.
+                        } else if (nbt.contains("Power", 9)) {
                             power = 1;
                         }
 
-                        // 3. Create new
                         newProj = new FireballEntity(player.getWorld(), player, dir.x, dir.y, dir.z, power);
                     }
                     else if (self instanceof SmallFireballEntity) {
@@ -124,11 +113,11 @@ public abstract class ExplosiveParryMixin {
                     int finalCd = (int) (baseCd * (1.0f - (levelMasterine * 0.2f)));
 
                     Bettershield.triggerCooldown(player, activeShield, 4, finalCd);
-
                     Bettershield.setParryDebounce(player);
                     player.getItemCooldownManager().set(activeShield.getItem(), 0);
 
-                    activeShield.damage(1, player, (p) -> p.sendToolBreakStatus(player.getActiveHand()));
+                    // --- 1.20.5 FIX: Simplify item damage callback ---
+                    activeShield.damage(1, player, player.getActiveHand() == Hand.MAIN_HAND ? net.minecraft.entity.EquipmentSlot.MAINHAND : net.minecraft.entity.EquipmentSlot.OFFHAND);
                     player.getWorld().playSound(null, player.getBlockPos(), SoundEvents.ITEM_FIRECHARGE_USE, SoundCategory.PLAYERS, 1.0f, 1.5f);
 
                     self.discard();

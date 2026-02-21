@@ -2,11 +2,9 @@ package nel.bettershield.entity;
 
 import nel.bettershield.BetterShieldConfig;
 import nel.bettershield.Bettershield;
-import nel.bettershield.item.ModShieldItem; // NEW IMPORT
+import nel.bettershield.item.ModShieldItem;
 import nel.bettershield.registry.BetterShieldCriteria;
 import nel.bettershield.registry.BetterShieldEnchantments;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.Entity;
@@ -21,7 +19,7 @@ import net.minecraft.entity.projectile.PersistentProjectileEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.PacketByteBuf;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.Hand;
@@ -44,15 +42,21 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
     }
 
     public ThrownShieldEntity(World world, LivingEntity owner, ItemStack stack) {
-        super(Bettershield.THROWN_SHIELD_ENTITY_TYPE, owner, world);
+        super(Bettershield.THROWN_SHIELD_ENTITY_TYPE, owner.getX(), owner.getEyeY() - 0.1, owner.getZ(), world, stack);
+        this.setOwner(owner);
         this.setStack(stack);
     }
 
     @Override
-    protected void initDataTracker() {
-        super.initDataTracker();
-        this.dataTracker.startTracking(SHIELD_STACK, new ItemStack(Items.SHIELD));
-        this.dataTracker.startTracking(IS_OFFHAND, false);
+    protected void initDataTracker(DataTracker.Builder builder) {
+        super.initDataTracker(builder);
+        builder.add(SHIELD_STACK, new ItemStack(Items.SHIELD));
+        builder.add(IS_OFFHAND, false);
+    }
+
+    @Override
+    protected ItemStack getDefaultItemStack() {
+        return new ItemStack(Items.SHIELD);
     }
 
     public void setStack(ItemStack stack) {
@@ -170,40 +174,33 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
         Entity target = entityHitResult.getEntity();
         float damage = this.impactDamage;
 
-        // --- CALCULATE DAMAGE BONUSES ---
         float damageMult = 1.0f;
-
-        // 1. Shield Density Enchantment
         int density = EnchantmentHelper.getLevel(BetterShieldEnchantments.SHIELD_DENSITY, this.getStack());
         damageMult += (density * 0.1f);
 
-        // 2. Tier Bonus (Diamond/Netherite)
         if (this.getStack().getItem() instanceof ModShieldItem modShield) {
             damageMult += modShield.getDamageBonus();
         }
 
-        // Apply Multipliers
         damage *= damageMult;
-        // -------------------------------
 
         Entity owner = this.getOwner();
         if (owner instanceof LivingEntity livingOwner) {
             target.damage(this.getDamageSources().trident(this, livingOwner), damage);
 
-            // STUN LOGIC
             if (this.stunEnabled && target instanceof LivingEntity livingTarget) {
                 BetterShieldConfig config = Bettershield.getConfig();
-                livingTarget.addStatusEffect(new StatusEffectInstance(Bettershield.STUN_EFFECT, config.stunMechanics.stunDuration, 0, false, false, true));
 
-                PacketByteBuf stunBuf = PacketByteBufs.create();
-                stunBuf.writeInt(livingTarget.getId());
-                stunBuf.writeInt(config.stunMechanics.stunDuration);
-                if (this.getWorld().isClient == false) {
-                    this.getWorld().getPlayers().forEach(p -> ServerPlayNetworking.send((ServerPlayerEntity)p, Bettershield.PACKET_STUN_MOBS, stunBuf));
+                var stunEntry = Registries.STATUS_EFFECT.getEntry(Bettershield.STUN_EFFECT);
+                livingTarget.addStatusEffect(new StatusEffectInstance(stunEntry, config.stunMechanics.stunDuration, 0, false, false, true));
+
+                // --- 1.20.5 FIX: Using the newly defined CustomPayload to send the Stun! ---
+                if (!this.getWorld().isClient) {
+                    Bettershield.StunMobsPayload stunPayload = new Bettershield.StunMobsPayload(livingTarget.getId(), config.stunMechanics.stunDuration);
+                    this.getWorld().getPlayers().forEach(p -> net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send((ServerPlayerEntity)p, stunPayload));
                 }
             }
 
-            // --- ADVANCEMENT TRIGGERS ---
             if (owner instanceof ServerPlayerEntity serverPlayer) {
                 if (EnchantmentHelper.getLevel(Enchantments.LOYALTY, this.getStack()) > 0) {
                     BetterShieldCriteria.SHIELD_THROW_HIT.trigger(serverPlayer);
@@ -214,7 +211,6 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
                 }
             }
 
-            // DURABILITY
             ItemStack stack = this.getStack();
             if (stack.isDamageable()) {
                 stack.setDamage(stack.getDamage() + 2);
@@ -230,7 +226,6 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
             target.damage(this.getDamageSources().thrown(this, this.getOwner()), damage);
         }
 
-        // PIERCING LOGIC
         int piercingLevel = EnchantmentHelper.getLevel(Enchantments.PIERCING, this.getStack());
         this.entitiesHitCount++;
 
@@ -252,14 +247,9 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
     }
 
     @Override
-    protected ItemStack asItemStack() {
-        return this.getStack();
-    }
-
-    @Override
     public void writeCustomDataToNbt(NbtCompound nbt) {
         super.writeCustomDataToNbt(nbt);
-        nbt.put("Shield", this.getStack().writeNbt(new NbtCompound()));
+        nbt.put("Shield", this.getStack().encodeAllowEmpty(this.getRegistryManager()));
         nbt.putBoolean("Returning", this.returning);
         nbt.putBoolean("IsOffhand", this.dataTracker.get(IS_OFFHAND));
         nbt.putFloat("ImpactDamage", this.impactDamage);
@@ -270,8 +260,8 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
     @Override
     public void readCustomDataFromNbt(NbtCompound nbt) {
         super.readCustomDataFromNbt(nbt);
-        if (nbt.contains("Shield", 10)) {
-            this.setStack(ItemStack.fromNbt(nbt.getCompound("Shield")));
+        if (nbt.contains("Shield")) {
+            this.setStack(ItemStack.fromNbtOrEmpty(this.getRegistryManager(), nbt.getCompound("Shield")));
         }
         this.returning = nbt.getBoolean("Returning");
         this.dataTracker.set(IS_OFFHAND, nbt.getBoolean("IsOffhand"));

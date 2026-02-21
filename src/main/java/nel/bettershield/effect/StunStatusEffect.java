@@ -1,7 +1,6 @@
 package nel.bettershield.effect;
 
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.attribute.AttributeContainer;
 import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.effect.StatusEffectCategory;
 import net.minecraft.entity.effect.StatusEffectInstance;
@@ -14,20 +13,14 @@ public class StunStatusEffect extends StatusEffect {
     }
 
     @Override
-    public void onApplied(LivingEntity entity, AttributeContainer attributes, int amplifier) {
-        // REMOVED: Blindness (It was annoying)
-
-        // KEEP: Slowness for Players
-        // This makes it so they can't sprint away while stunned, but they can see.
-        // showIcon = true is still required for the stars to render!
-        if (entity instanceof PlayerEntity) {
-            entity.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 60, 3, false, false, true));
-        }
-    }
-
-    @Override
     public boolean canApplyUpdateEffect(int duration, int amplifier) { return true; }
 
     @Override
-    public void applyUpdateEffect(LivingEntity entity, int amplifier) {}
+    public boolean applyUpdateEffect(LivingEntity entity, int amplifier) {
+        if (entity instanceof PlayerEntity) {
+            // --- 1.20.5 FIX: StatusEffects.SLOWNESS is already a RegistryEntry! ---
+            entity.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 60, 3, false, false, true));
+        }
+        return true;
+    }
 }

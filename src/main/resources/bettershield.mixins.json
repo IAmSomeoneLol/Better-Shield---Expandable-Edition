@@ -11,19 +11,16 @@
 		"StunDamageMixin",
 		"SlamFallReductionMixin",
 		"ShieldItemMixin",
-		"ArrowEntityAccessor",
-		"TridentEntityAccessor",
 		"FireballEntityAccessor",
 		"ReflectKillMixin",
 		"SlamWaterMixin",
-		"LoyaltyEnchantmentMixin",
-		"PiercingEnchantmentMixin",
 		"EnchantmentHelperMixin",
 		"ExplosiveParryMixin",
 		"SwiftSneakMixin",
 		"FireResistanceMixin",
 		"ShieldDecorationRecipeMixin",
-		"ActiveArmorMixin"
+		"ActiveArmorMixin",
+		"EnchantmentMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

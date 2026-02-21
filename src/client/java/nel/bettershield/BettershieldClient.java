@@ -16,7 +16,6 @@ import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.item.ModelPredicateProviderRegistry;
 import net.minecraft.client.option.KeyBinding;
@@ -28,7 +27,6 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.particle.ItemStackParticleEffect;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.Registries;
@@ -41,10 +39,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 
 public class BettershieldClient implements ClientModInitializer {
 
-	// --- RESTORED: STUN MAP & TEXTURE ---
 	private static final Identifier STAR_TEXTURE = new Identifier("bettershield", "textures/particle/stun_star.png");
 	private static final HashMap<Integer, Long> STUNNED_ENTITIES = new HashMap<>();
 
@@ -55,7 +53,6 @@ public class BettershieldClient implements ClientModInitializer {
 	public static int chargeTicks = 0;
 	public static boolean isChargingThrow = false;
 
-	// Cache variables for blacklist
 	private Item lastMainHandItem = null;
 	private boolean isBlacklistedCached = false;
 
@@ -89,37 +86,37 @@ public class BettershieldClient implements ClientModInitializer {
 					return (float) chargeTicks / 20.0F;
 				});
 
-		ClientPlayNetworking.registerGlobalReceiver(Bettershield.PACKET_SYNC_COOLDOWN, (client, handler, buf, responseSender) -> {
-			int type = buf.readInt();
-			int duration = buf.readInt();
-			client.execute(() -> {
-				if (client.player != null) {
-					long expiry = client.world.getTime() + duration;
-					if (type == 1) { Bettershield.BASH_COOLDOWN.put(client.player.getUuid(), expiry); Bettershield.BASH_MAX.put(client.player.getUuid(), duration); }
-					if (type == 2) { Bettershield.SLAM_COOLDOWN.put(client.player.getUuid(), expiry); Bettershield.SLAM_MAX.put(client.player.getUuid(), duration); }
-					if (type == 3) { Bettershield.PARRY_MELEE_COOLDOWN.put(client.player.getUuid(), expiry); Bettershield.PARRY_MELEE_MAX.put(client.player.getUuid(), duration); }
-					if (type == 4) { Bettershield.PARRY_PROJECTILE_COOLDOWN.put(client.player.getUuid(), expiry); Bettershield.PARRY_PROJECTILE_MAX.put(client.player.getUuid(), duration); }
-					if (type == 5) { Bettershield.THROW_COOLDOWN.put(client.player.getUuid(), expiry); Bettershield.THROW_MAX.put(client.player.getUuid(), duration); }
+		ClientPlayNetworking.registerGlobalReceiver(Bettershield.SyncCooldownPayload.ID, (payload, context) -> {
+			int type = payload.type();
+			int duration = payload.duration();
+			context.client().execute(() -> {
+				if (context.client().player != null) {
+					long expiry = context.client().world.getTime() + duration;
+					UUID uuid = context.client().player.getUuid();
+					if (type == 1) { Bettershield.BASH_COOLDOWN.put(uuid, expiry); Bettershield.BASH_MAX.put(uuid, duration); }
+					if (type == 2) { Bettershield.SLAM_COOLDOWN.put(uuid, expiry); Bettershield.SLAM_MAX.put(uuid, duration); }
+					if (type == 3) { Bettershield.PARRY_MELEE_COOLDOWN.put(uuid, expiry); Bettershield.PARRY_MELEE_MAX.put(uuid, duration); }
+					if (type == 4) { Bettershield.PARRY_PROJECTILE_COOLDOWN.put(uuid, expiry); Bettershield.PARRY_PROJECTILE_MAX.put(uuid, duration); }
+					if (type == 5) { Bettershield.THROW_COOLDOWN.put(uuid, expiry); Bettershield.THROW_MAX.put(uuid, duration); }
 				}
 			});
 		});
 
-		// --- RESTORED: STUN PACKET RECEIVER (Using the Map) ---
-		ClientPlayNetworking.registerGlobalReceiver(Bettershield.PACKET_STUN_MOBS, (client, handler, buf, responseSender) -> {
-			int entityId = buf.readInt();
-			int duration = buf.readInt();
-			client.execute(() -> {
-				if (client.world != null) STUNNED_ENTITIES.put(entityId, client.world.getTime() + duration);
+		ClientPlayNetworking.registerGlobalReceiver(Bettershield.StunMobsPayload.ID, (payload, context) -> {
+			int entityId = payload.entityId();
+			int duration = payload.duration();
+			context.client().execute(() -> {
+				if (context.client().world != null) STUNNED_ENTITIES.put(entityId, context.client().world.getTime() + duration);
 			});
 		});
 
-		ClientPlayNetworking.registerGlobalReceiver(Bettershield.PACKET_SLAM_EFFECT, (client, handler, buf, responseSender) -> {
-			double x = buf.readDouble();
-			double y = buf.readDouble();
-			double z = buf.readDouble();
-			String blockId = buf.readString();
-			client.execute(() -> {
-				if (client.world != null) {
+		ClientPlayNetworking.registerGlobalReceiver(Bettershield.SlamEffectPayload.ID, (payload, context) -> {
+			double x = payload.x();
+			double y = payload.y();
+			double z = payload.z();
+			String blockId = payload.blockId();
+			context.client().execute(() -> {
+				if (context.client().world != null) {
 					ItemStack debrisStack = new ItemStack(Registries.ITEM.get(new Identifier(blockId)));
 					if (debrisStack.isEmpty()) debrisStack = new ItemStack(Items.COBBLESTONE);
 					for (int i = 0; i < 600; i++) {
@@ -132,28 +129,31 @@ public class BettershieldClient implements ClientModInitializer {
 						double speed = 0.1 + (random.nextDouble() * 0.3);
 						double vx = Math.cos(angle) * speed;
 						double vz = Math.sin(angle) * speed;
-						client.world.addParticle(new ItemStackParticleEffect(ParticleTypes.ITEM, debrisStack), ox, oy, oz, vx, vy, vz);
+						context.client().world.addParticle(new ItemStackParticleEffect(ParticleTypes.ITEM, debrisStack), ox, oy, oz, vx, vy, vz);
 					}
 				}
 			});
 		});
 
-		ClientPlayNetworking.registerGlobalReceiver(Bettershield.PACKET_BASH_TRAIL, (client, handler, buf, responseSender) -> {
-			int entityId = buf.readInt();
-			int duration = buf.readInt();
-			client.execute(() -> { BASH_TRAILS.put(entityId, duration); });
+		ClientPlayNetworking.registerGlobalReceiver(Bettershield.BashTrailPayload.ID, (payload, context) -> {
+			int entityId = payload.entityId();
+			int duration = payload.duration();
+			context.client().execute(() -> { BASH_TRAILS.put(entityId, duration); });
 		});
 
-		// --- RESTORED: WORLD RENDER EVENT ---
 		WorldRenderEvents.AFTER_ENTITIES.register(context -> {
 			MinecraftClient client = MinecraftClient.getInstance();
 			if (client.world == null || client.player == null) return;
 			long now = client.world.getTime();
 			Iterator<Map.Entry<Integer, Long>> iterator = STUNNED_ENTITIES.entrySet().iterator();
 			while (iterator.hasNext()) { if (now > iterator.next().getValue()) iterator.remove(); }
+
+			// --- 1.20.5 FIX: Wrapping the STUN_EFFECT into a RegistryEntry ---
+			var stunEntry = Registries.STATUS_EFFECT.getEntry(Bettershield.STUN_EFFECT);
+
 			for (Entity entity : client.world.getEntities()) {
 				if (!(entity instanceof LivingEntity living)) continue;
-				if (STUNNED_ENTITIES.containsKey(entity.getId()) || living.hasStatusEffect(Bettershield.STUN_EFFECT)) renderHalo(context, living);
+				if (STUNNED_ENTITIES.containsKey(entity.getId()) || living.hasStatusEffect(stunEntry)) renderHalo(context, living);
 			}
 		});
 
@@ -211,7 +211,7 @@ public class BettershieldClient implements ClientModInitializer {
 				if (!wasAttackPressed) {
 					boolean hasShield = mainIsShield || offIsShield;
 					if (hasShield && isBlockingInput) {
-						ClientPlayNetworking.send(Bettershield.PACKET_SHIELD_ATTACK, PacketByteBufs.create());
+						ClientPlayNetworking.send(new Bettershield.ShieldAttackPayload());
 						client.player.swingHand(client.player.getActiveHand());
 					}
 					wasAttackPressed = true;
@@ -226,9 +226,7 @@ public class BettershieldClient implements ClientModInitializer {
 				} else { isChargingThrow = false; chargeTicks = 0; }
 			} else {
 				if (isChargingThrow) {
-					PacketByteBuf buf = PacketByteBufs.create();
-					buf.writeInt(chargeTicks);
-					ClientPlayNetworking.send(Bettershield.PACKET_SHIELD_THROW, buf);
+					ClientPlayNetworking.send(new Bettershield.ShieldThrowPayload(chargeTicks));
 					isChargingThrow = false; chargeTicks = 0;
 				}
 			}
@@ -254,7 +252,6 @@ public class BettershieldClient implements ClientModInitializer {
 		BuiltinItemRendererRegistry.INSTANCE.register(item, new ModShieldRenderer());
 	}
 
-	// --- RESTORED: RENDER HALO METHOD ---
 	private void renderHalo(WorldRenderContext context, LivingEntity entity) {
 		MatrixStack matrices = context.matrixStack();
 		Vec3d cameraPos = context.camera().getPos();
@@ -284,13 +281,13 @@ public class BettershieldClient implements ClientModInitializer {
 		matrices.pop();
 	}
 
-	// --- RESTORED: DRAW QUAD METHOD ---
 	private void drawQuad(MatrixStack matrices, VertexConsumer buffer, float size) {
 		MatrixStack.Entry entry = matrices.peek();
 		int light = 15728880;
-		buffer.vertex(entry.getPositionMatrix(), -size, -size, 0).color(255, 255, 255, 255).texture(0, 1).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(entry.getNormalMatrix(), 0, 1, 0).next();
-		buffer.vertex(entry.getPositionMatrix(), size, -size, 0).color(255, 255, 255, 255).texture(1, 1).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(entry.getNormalMatrix(), 0, 1, 0).next();
-		buffer.vertex(entry.getPositionMatrix(), size, size, 0).color(255, 255, 255, 255).texture(1, 0).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(entry.getNormalMatrix(), 0, 1, 0).next();
-		buffer.vertex(entry.getPositionMatrix(), -size, size, 0).color(255, 255, 255, 255).texture(0, 0).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(entry.getNormalMatrix(), 0, 1, 0).next();
+		// --- 1.20.5 FIX: Using `entry` directly in the `.normal()` call ---
+		buffer.vertex(entry.getPositionMatrix(), -size, -size, 0).color(255, 255, 255, 255).texture(0, 1).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(entry, 0.0F, 1.0F, 0.0F).next();
+		buffer.vertex(entry.getPositionMatrix(), size, -size, 0).color(255, 255, 255, 255).texture(1, 1).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(entry, 0.0F, 1.0F, 0.0F).next();
+		buffer.vertex(entry.getPositionMatrix(), size, size, 0).color(255, 255, 255, 255).texture(1, 0).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(entry, 0.0F, 1.0F, 0.0F).next();
+		buffer.vertex(entry.getPositionMatrix(), -size, size, 0).color(255, 255, 255, 255).texture(0, 0).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(entry, 0.0F, 1.0F, 0.0F).next();
 	}
 }

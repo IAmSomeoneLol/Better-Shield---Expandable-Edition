@@ -2,74 +2,50 @@ package nel.bettershield.registry;
 
 import nel.bettershield.Bettershield;
 import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.EnchantmentTarget;
 import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.ShieldItem;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.util.Identifier;
 
 public class BetterShieldEnchantments {
 
-    // ALL TARGETS SET TO 'BREAKABLE'
-    public static final Enchantment SHIELD_DENSITY = new BasicShieldEnchantment(Enchantment.Rarity.COMMON, 3, false, 1, 10);
-    public static final Enchantment PARRYFUL = new BasicShieldEnchantment(Enchantment.Rarity.COMMON, 3, false, 5, 8);
-    public static final Enchantment DEFLECTOR = new BasicShieldEnchantment(Enchantment.Rarity.COMMON, 2, false, 10, 20);
-    public static final Enchantment PARRY_DOCTRINE = new BasicShieldEnchantment(Enchantment.Rarity.COMMON, 2, false, 15, 20);
-    public static final Enchantment SLAM_FOAM = new BasicShieldEnchantment(Enchantment.Rarity.COMMON, 2, false, 5, 15);
-    public static final Enchantment MASTERINE = new BasicShieldEnchantment(Enchantment.Rarity.RARE, 2, false, 5, 20);
+    // --- 1.20.5 FIX: Create basic programatic enchantments to prevent NullPointerExceptions ---
+    public static final Enchantment SHIELD_DENSITY = new Enchantment(Enchantment.properties(
+            Registries.ITEM.getOrCreateEntryList(net.minecraft.registry.tag.ItemTags.DURABILITY_ENCHANTABLE),
+            10, 3, Enchantment.leveledCost(1, 10), Enchantment.leveledCost(1, 15), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
 
-    // NEW: Active Armor (Very Rare)
-    // Min Power 25, Step 50.
-    // Level 1 Cost = 25 (Possible). Level 2 Cost = 75 (Impossible in Table).
-    // This forces it to only spawn as Level I in tables.
-    public static final Enchantment ACTIVE_ARMOR = new BasicShieldEnchantment(Enchantment.Rarity.VERY_RARE, 3, false, 25, 50);
+    public static final Enchantment PARRYFUL = new Enchantment(Enchantment.properties(
+            Registries.ITEM.getOrCreateEntryList(net.minecraft.registry.tag.ItemTags.DURABILITY_ENCHANTABLE),
+            10, 3, Enchantment.leveledCost(5, 8), Enchantment.leveledCost(5, 15), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
+
+    public static final Enchantment DEFLECTOR = new Enchantment(Enchantment.properties(
+            Registries.ITEM.getOrCreateEntryList(net.minecraft.registry.tag.ItemTags.DURABILITY_ENCHANTABLE),
+            10, 2, Enchantment.leveledCost(10, 20), Enchantment.leveledCost(10, 30), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
+
+    public static final Enchantment PARRY_DOCTRINE = new Enchantment(Enchantment.properties(
+            Registries.ITEM.getOrCreateEntryList(net.minecraft.registry.tag.ItemTags.DURABILITY_ENCHANTABLE),
+            10, 2, Enchantment.leveledCost(15, 20), Enchantment.leveledCost(15, 30), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
+
+    public static final Enchantment SLAM_FOAM = new Enchantment(Enchantment.properties(
+            Registries.ITEM.getOrCreateEntryList(net.minecraft.registry.tag.ItemTags.DURABILITY_ENCHANTABLE),
+            10, 2, Enchantment.leveledCost(5, 15), Enchantment.leveledCost(5, 25), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
+
+    public static final Enchantment MASTERINE = new Enchantment(Enchantment.properties(
+            Registries.ITEM.getOrCreateEntryList(net.minecraft.registry.tag.ItemTags.DURABILITY_ENCHANTABLE),
+            5, 2, Enchantment.leveledCost(5, 20), Enchantment.leveledCost(5, 30), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
+
+    public static final Enchantment ACTIVE_ARMOR = new Enchantment(Enchantment.properties(
+            Registries.ITEM.getOrCreateEntryList(net.minecraft.registry.tag.ItemTags.DURABILITY_ENCHANTABLE),
+            1, 3, Enchantment.leveledCost(25, 50), Enchantment.leveledCost(25, 60), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
+
 
     public static void register() {
-        register("shield_density", SHIELD_DENSITY);
-        register("parryful", PARRYFUL);
-        register("deflector", DEFLECTOR);
-        register("parry_doctrine", PARRY_DOCTRINE);
-        register("slam_foam", SLAM_FOAM);
-        register("masterine", MASTERINE);
-        register("active_armor", ACTIVE_ARMOR);
-    }
-
-    private static void register(String name, Enchantment enchantment) {
-        Registry.register(Registries.ENCHANTMENT, new Identifier(Bettershield.MOD_ID, name), enchantment);
-    }
-
-    public static class BasicShieldEnchantment extends Enchantment {
-        private final int maxLevel;
-        private final boolean isTreasure;
-        private final int minPowerBase;
-        private final int powerPerLevel;
-
-        public BasicShieldEnchantment(Rarity weight, int maxLevel, boolean isTreasure, int minPowerBase, int powerPerLevel) {
-
-            super(weight, EnchantmentTarget.BREAKABLE, new EquipmentSlot[]{EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND});
-            this.maxLevel = maxLevel;
-            this.isTreasure = isTreasure;
-            this.minPowerBase = minPowerBase;
-            this.powerPerLevel = powerPerLevel;
-        }
-
-        @Override
-        public int getMaxLevel() { return maxLevel; }
-
-        @Override
-        public boolean isTreasure() { return isTreasure; }
-
-        @Override
-        public int getMinPower(int level) { return this.minPowerBase + (level - 1) * this.powerPerLevel; }
-
-        @Override
-        public int getMaxPower(int level) { return super.getMinPower(level) + 50; }
-
-        @Override
-        public boolean isAcceptableItem(ItemStack stack) {
-            return stack.getItem() instanceof ShieldItem;
-        }
+        Registry.register(Registries.ENCHANTMENT, new Identifier(Bettershield.MOD_ID, "shield_density"), SHIELD_DENSITY);
+        Registry.register(Registries.ENCHANTMENT, new Identifier(Bettershield.MOD_ID, "parryful"), PARRYFUL);
+        Registry.register(Registries.ENCHANTMENT, new Identifier(Bettershield.MOD_ID, "deflector"), DEFLECTOR);
+        Registry.register(Registries.ENCHANTMENT, new Identifier(Bettershield.MOD_ID, "parry_doctrine"), PARRY_DOCTRINE);
+        Registry.register(Registries.ENCHANTMENT, new Identifier(Bettershield.MOD_ID, "slam_foam"), SLAM_FOAM);
+        Registry.register(Registries.ENCHANTMENT, new Identifier(Bettershield.MOD_ID, "masterine"), MASTERINE);
+        Registry.register(Registries.ENCHANTMENT, new Identifier(Bettershield.MOD_ID, "active_armor"), ACTIVE_ARMOR);
     }
 }
