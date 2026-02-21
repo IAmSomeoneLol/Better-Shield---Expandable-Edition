@@ -1,8 +1,8 @@
 {
   "display": {
     "icon": {
-      "item": "minecraft:shield",
-      "nbt": "{Enchantments:[{id:\"minecraft:loyalty\",lvl:1}]}"
+      "id": "minecraft:shield",
+      "components": "{Enchantments:[{id:\"minecraft:loyalty\",lvl:1}]}"
     },
     "title": {
       "text": "A Throwaway Captain Joke"

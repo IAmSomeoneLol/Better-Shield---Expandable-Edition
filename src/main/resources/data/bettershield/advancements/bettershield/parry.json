@@ -2,7 +2,7 @@
   "parent": "bettershield:bettershield/root",
   "display": {
     "icon": {
-      "item": "minecraft:iron_ingot"
+      "id": "minecraft:iron_ingot"
     },
     "title": "Parried it!",
     "description": "Parry a Player or Mob at least once",

@@ -1,8 +1,8 @@
 {
   "display": {
     "icon": {
-      "item": "minecraft:shield",
-      "nbt": "{Enchantments:[{id:\"minecraft:loyalty\",lvl:3},{id:\"minecraft:piercing\",lvl:4}]}"
+      "id": "minecraft:shield",
+      "components": "{Enchantments:[{id:\"minecraft:loyalty\",lvl:3},{id:\"minecraft:piercing\",lvl:4}]}"
     },
     "title": {
       "text": "CAPTAIN AMERICA"

@@ -2,7 +2,7 @@
   "parent": "bettershield:bettershield/parry",
   "display": {
     "icon": {
-      "item": "minecraft:arrow"
+      "id": "minecraft:arrow"
     },
     "title": "Deflector Reflector",
     "description": "Kill an entity by deflecting their own projectile back at them",

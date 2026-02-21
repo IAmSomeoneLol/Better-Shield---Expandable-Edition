@@ -2,7 +2,7 @@
   "parent": "bettershield:bettershield/root",
   "display": {
     "icon": {
-      "item": "minecraft:firework_rocket"
+      "id": "minecraft:firework_rocket"
     },
     "title": "THE NAME IS JOHN CENA!",
     "description": "Perform a Slam that hits at least 5 mobs instantly",
