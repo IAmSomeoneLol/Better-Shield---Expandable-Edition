@@ -10,34 +10,34 @@ import net.minecraft.util.Identifier;
 
 public class BetterShieldEnchantments {
 
-    // --- 1.20.5 FIX: Rebalanced Weights (10=Common, 5=Uncommon, 2=Rare, 1=Very Rare) and lowered cost gaps ---
+    // --- 1.20.5 FIX: Drastically raised the "Max Power" ceiling so Netherite doesn't overflow! ---
     public static final Enchantment SHIELD_DENSITY = new Enchantment(Enchantment.properties(
             ItemTags.DURABILITY_ENCHANTABLE,
-            10, 3, Enchantment.leveledCost(1, 11), Enchantment.leveledCost(21, 11), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
+            10, 3, Enchantment.leveledCost(1, 11), Enchantment.leveledCost(51, 11), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
 
     public static final Enchantment PARRYFUL = new Enchantment(Enchantment.properties(
             ItemTags.DURABILITY_ENCHANTABLE,
-            5, 3, Enchantment.leveledCost(5, 9), Enchantment.leveledCost(25, 9), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
+            5, 3, Enchantment.leveledCost(5, 9), Enchantment.leveledCost(55, 9), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
 
     public static final Enchantment DEFLECTOR = new Enchantment(Enchantment.properties(
             ItemTags.DURABILITY_ENCHANTABLE,
-            2, 2, Enchantment.leveledCost(10, 15), Enchantment.leveledCost(30, 15), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
+            2, 2, Enchantment.leveledCost(10, 15), Enchantment.leveledCost(60, 15), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
 
     public static final Enchantment PARRY_DOCTRINE = new Enchantment(Enchantment.properties(
             ItemTags.DURABILITY_ENCHANTABLE,
-            2, 2, Enchantment.leveledCost(12, 18), Enchantment.leveledCost(32, 18), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
+            2, 2, Enchantment.leveledCost(12, 18), Enchantment.leveledCost(62, 18), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
 
     public static final Enchantment SLAM_FOAM = new Enchantment(Enchantment.properties(
             ItemTags.DURABILITY_ENCHANTABLE,
-            5, 2, Enchantment.leveledCost(8, 14), Enchantment.leveledCost(28, 14), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
+            5, 2, Enchantment.leveledCost(8, 14), Enchantment.leveledCost(58, 14), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
 
     public static final Enchantment MASTERINE = new Enchantment(Enchantment.properties(
             ItemTags.DURABILITY_ENCHANTABLE,
-            2, 2, Enchantment.leveledCost(15, 15), Enchantment.leveledCost(35, 15), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
+            2, 2, Enchantment.leveledCost(15, 15), Enchantment.leveledCost(65, 15), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
 
     public static final Enchantment ACTIVE_ARMOR = new Enchantment(Enchantment.properties(
             ItemTags.DURABILITY_ENCHANTABLE,
-            1, 3, Enchantment.leveledCost(20, 12), Enchantment.leveledCost(50, 12), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
+            1, 3, Enchantment.leveledCost(20, 12), Enchantment.leveledCost(70, 12), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
 
 
     public static void register() {
