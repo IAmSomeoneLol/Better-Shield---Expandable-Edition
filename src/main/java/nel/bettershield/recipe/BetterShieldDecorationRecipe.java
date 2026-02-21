@@ -1,42 +1,43 @@
 package nel.bettershield.recipe;
 
 import nel.bettershield.registry.BetterShieldItems;
-import net.minecraft.inventory.RecipeInputInventory;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.BannerPatternsComponent;
 import net.minecraft.item.BannerItem;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtList;
 import net.minecraft.recipe.RecipeSerializer;
 import net.minecraft.recipe.SpecialCraftingRecipe;
 import net.minecraft.recipe.book.CraftingRecipeCategory;
+import net.minecraft.recipe.input.CraftingRecipeInput;
 import net.minecraft.registry.DynamicRegistryManager;
-import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 
 public class BetterShieldDecorationRecipe extends SpecialCraftingRecipe {
-    public BetterShieldDecorationRecipe(Identifier id, CraftingRecipeCategory category) {
-        super(id, category);
+
+    public BetterShieldDecorationRecipe(CraftingRecipeCategory category) {
+        super(category);
     }
 
+    // --- 1.20.5 FIX: RecipeInputInventory changed to CraftingRecipeInput ---
     @Override
-    public boolean matches(RecipeInputInventory inventory, World world) {
+    public boolean matches(CraftingRecipeInput input, World world) {
         ItemStack shieldStack = ItemStack.EMPTY;
         ItemStack bannerStack = ItemStack.EMPTY;
 
-        for (int i = 0; i < inventory.size(); ++i) {
-            ItemStack stack = inventory.getStack(i);
+        for (int i = 0; i < input.getSize(); ++i) {
+            ItemStack stack = input.getStackInSlot(i);
             if (stack.isEmpty()) continue;
 
             if (stack.getItem() instanceof BannerItem) {
-                if (!bannerStack.isEmpty()) return false; // More than one banner
+                if (!bannerStack.isEmpty()) return false;
                 bannerStack = stack;
             } else if (isCustomShield(stack)) {
-                if (!shieldStack.isEmpty()) return false; // More than one shield
-                if (stack.getSubNbt("BlockEntityTag") != null) return false; // Shield already has pattern
+                if (!shieldStack.isEmpty()) return false;
+                // --- 1.20.5 FIX: NBT check changed to Component check ---
+                if (stack.contains(DataComponentTypes.BANNER_PATTERNS)) return false;
                 shieldStack = stack;
             } else {
-                return false; // Unknown item
+                return false;
             }
         }
 
@@ -44,12 +45,12 @@ public class BetterShieldDecorationRecipe extends SpecialCraftingRecipe {
     }
 
     @Override
-    public ItemStack craft(RecipeInputInventory inventory, DynamicRegistryManager registryManager) {
+    public ItemStack craft(CraftingRecipeInput input, DynamicRegistryManager registryManager) {
         ItemStack shieldStack = ItemStack.EMPTY;
         ItemStack bannerStack = ItemStack.EMPTY;
 
-        for (int i = 0; i < inventory.size(); ++i) {
-            ItemStack stack = inventory.getStack(i);
+        for (int i = 0; i < input.getSize(); ++i) {
+            ItemStack stack = input.getStackInSlot(i);
             if (stack.isEmpty()) continue;
 
             if (stack.getItem() instanceof BannerItem) {
@@ -63,16 +64,13 @@ public class BetterShieldDecorationRecipe extends SpecialCraftingRecipe {
             return ItemStack.EMPTY;
         }
 
-        NbtCompound blockEntityTag = shieldStack.getOrCreateSubNbt("BlockEntityTag");
-        NbtCompound bannerTag = bannerStack.getSubNbt("BlockEntityTag");
+        // --- 1.20.5 FIX: Component Magic instead of NBT ---
+        BannerItem bannerItem = (BannerItem) bannerStack.getItem();
+        shieldStack.set(DataComponentTypes.BASE_COLOR, bannerItem.getColor());
 
-        // Base color
-        blockEntityTag.putInt("Base", ((BannerItem)bannerStack.getItem()).getColor().getId());
-
-        // Patterns
-        if (bannerTag != null) {
-            NbtList patterns = bannerTag.getList("Patterns", 10);
-            blockEntityTag.put("Patterns", patterns.copy());
+        BannerPatternsComponent patterns = bannerStack.get(DataComponentTypes.BANNER_PATTERNS);
+        if (patterns != null) {
+            shieldStack.set(DataComponentTypes.BANNER_PATTERNS, patterns);
         }
 
         return shieldStack;
