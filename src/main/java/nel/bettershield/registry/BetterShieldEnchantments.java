@@ -5,37 +5,38 @@ import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
+import net.minecraft.registry.tag.ItemTags;
 import net.minecraft.util.Identifier;
 
 public class BetterShieldEnchantments {
 
-    // --- 1.20.5 FIX: Create basic programatic enchantments to prevent NullPointerExceptions ---
+    // --- 1.20.5 FIX: Passed the raw ItemTags directly into the properties ---
     public static final Enchantment SHIELD_DENSITY = new Enchantment(Enchantment.properties(
-            Registries.ITEM.getOrCreateEntryList(net.minecraft.registry.tag.ItemTags.DURABILITY_ENCHANTABLE),
+            ItemTags.DURABILITY_ENCHANTABLE,
             10, 3, Enchantment.leveledCost(1, 10), Enchantment.leveledCost(1, 15), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
 
     public static final Enchantment PARRYFUL = new Enchantment(Enchantment.properties(
-            Registries.ITEM.getOrCreateEntryList(net.minecraft.registry.tag.ItemTags.DURABILITY_ENCHANTABLE),
+            ItemTags.DURABILITY_ENCHANTABLE,
             10, 3, Enchantment.leveledCost(5, 8), Enchantment.leveledCost(5, 15), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
 
     public static final Enchantment DEFLECTOR = new Enchantment(Enchantment.properties(
-            Registries.ITEM.getOrCreateEntryList(net.minecraft.registry.tag.ItemTags.DURABILITY_ENCHANTABLE),
+            ItemTags.DURABILITY_ENCHANTABLE,
             10, 2, Enchantment.leveledCost(10, 20), Enchantment.leveledCost(10, 30), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
 
     public static final Enchantment PARRY_DOCTRINE = new Enchantment(Enchantment.properties(
-            Registries.ITEM.getOrCreateEntryList(net.minecraft.registry.tag.ItemTags.DURABILITY_ENCHANTABLE),
+            ItemTags.DURABILITY_ENCHANTABLE,
             10, 2, Enchantment.leveledCost(15, 20), Enchantment.leveledCost(15, 30), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
 
     public static final Enchantment SLAM_FOAM = new Enchantment(Enchantment.properties(
-            Registries.ITEM.getOrCreateEntryList(net.minecraft.registry.tag.ItemTags.DURABILITY_ENCHANTABLE),
+            ItemTags.DURABILITY_ENCHANTABLE,
             10, 2, Enchantment.leveledCost(5, 15), Enchantment.leveledCost(5, 25), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
 
     public static final Enchantment MASTERINE = new Enchantment(Enchantment.properties(
-            Registries.ITEM.getOrCreateEntryList(net.minecraft.registry.tag.ItemTags.DURABILITY_ENCHANTABLE),
+            ItemTags.DURABILITY_ENCHANTABLE,
             5, 2, Enchantment.leveledCost(5, 20), Enchantment.leveledCost(5, 30), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
 
     public static final Enchantment ACTIVE_ARMOR = new Enchantment(Enchantment.properties(
-            Registries.ITEM.getOrCreateEntryList(net.minecraft.registry.tag.ItemTags.DURABILITY_ENCHANTABLE),
+            ItemTags.DURABILITY_ENCHANTABLE,
             1, 3, Enchantment.leveledCost(25, 50), Enchantment.leveledCost(25, 60), 1, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND));
 
 
