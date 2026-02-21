@@ -14,13 +14,11 @@
 		"FireballEntityAccessor",
 		"ReflectKillMixin",
 		"SlamWaterMixin",
-		"EnchantmentHelperMixin",
 		"ExplosiveParryMixin",
 		"SwiftSneakMixin",
 		"FireResistanceMixin",
 		"ShieldDecorationRecipeMixin",
-		"ActiveArmorMixin",
-		"EnchantmentMixin"
+		"ActiveArmorMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

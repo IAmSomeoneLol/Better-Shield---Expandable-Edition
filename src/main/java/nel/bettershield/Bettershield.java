@@ -38,9 +38,7 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.RaycastContext;
 
-// --- 1.20.5 FIX: Using Java's native logger to bypass IntelliJ indexing glitches ---
 import java.util.logging.Logger;
-
 import me.shedaniel.autoconfig.AutoConfig;
 import me.shedaniel.autoconfig.serializer.JanksonConfigSerializer;
 
@@ -62,9 +60,10 @@ public class Bettershield implements ModInitializer {
 	public static final SimpleParticleType SPARK_PARTICLE = FabricParticleTypes.simple();
 	public static final SimpleParticleType CLOUD_PARTICLE = FabricParticleTypes.simple();
 
+	// --- 1.21 FIX: Identifier.of() ---
 	public static final EntityType<ThrownShieldEntity> THROWN_SHIELD_ENTITY_TYPE = Registry.register(
 			Registries.ENTITY_TYPE,
-			new Identifier(MOD_ID, "thrown_shield"),
+			Identifier.of(MOD_ID, "thrown_shield"),
 			FabricEntityTypeBuilder.<ThrownShieldEntity>create(SpawnGroup.MISC, ThrownShieldEntity::new)
 					.dimensions(EntityDimensions.fixed(1.2f, 1.2f))
 					.trackRangeBlocks(80).trackedUpdateRate(10)
@@ -93,18 +92,17 @@ public class Bettershield implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		AutoConfig.register(BetterShieldConfig.class, JanksonConfigSerializer::new);
-		BetterShieldEnchantments.register();
 		BetterShieldLootModifier.register();
 		nel.bettershield.registry.BetterShieldCriteria.register();
 
 		BetterShieldItems.register();
 
-		Registry.register(Registries.STATUS_EFFECT, new Identifier(MOD_ID, "stun"), STUN_EFFECT);
-		Registry.register(Registries.PARTICLE_TYPE, new Identifier(MOD_ID, "stun_star"), STUN_STAR_PARTICLE);
-		Registry.register(Registries.PARTICLE_TYPE, new Identifier(MOD_ID, "spark"), SPARK_PARTICLE);
-		Registry.register(Registries.PARTICLE_TYPE, new Identifier(MOD_ID, "cloud"), CLOUD_PARTICLE);
+		// --- 1.21 FIX: Identifier.of() ---
+		Registry.register(Registries.STATUS_EFFECT, Identifier.of(MOD_ID, "stun"), STUN_EFFECT);
+		Registry.register(Registries.PARTICLE_TYPE, Identifier.of(MOD_ID, "stun_star"), STUN_STAR_PARTICLE);
+		Registry.register(Registries.PARTICLE_TYPE, Identifier.of(MOD_ID, "spark"), SPARK_PARTICLE);
+		Registry.register(Registries.PARTICLE_TYPE, Identifier.of(MOD_ID, "cloud"), CLOUD_PARTICLE);
 
-		// --- REGISTER PAYLOADS ---
 		PayloadTypeRegistry.playC2S().register(ShieldAttackPayload.ID, ShieldAttackPayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(ShieldThrowPayload.ID, ShieldThrowPayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(StunMobsPayload.ID, StunMobsPayload.CODEC);
@@ -112,7 +110,6 @@ public class Bettershield implements ModInitializer {
 		PayloadTypeRegistry.playS2C().register(SlamEffectPayload.ID, SlamEffectPayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(BashTrailPayload.ID, BashTrailPayload.CODEC);
 
-		// --- SHIELD THROW ---
 		ServerPlayNetworking.registerGlobalReceiver(ShieldThrowPayload.ID, (payload, context) -> {
 			int chargeTicks = payload.chargeTicks();
 			ServerPlayerEntity player = context.player();
@@ -130,10 +127,11 @@ public class Bettershield implements ModInitializer {
 					ItemStack shieldToThrow = null;
 					boolean isOffhand = false;
 
-					if (mainStack.getItem() instanceof net.minecraft.item.ShieldItem && EnchantmentHelper.getLevel(Enchantments.LOYALTY, mainStack) > 0) {
+					// --- 1.21 FIX: Pass the ServerWorld's DynamicRegistryManager to EnchantmentHelper ---
+					if (mainStack.getItem() instanceof net.minecraft.item.ShieldItem && EnchantmentHelper.getLevel(player.getWorld().getRegistryManager().getWrapperOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT).getOrThrow(Enchantments.LOYALTY), mainStack) > 0) {
 						shieldToThrow = mainStack;
 						isOffhand = false;
-					} else if (offStack.getItem() instanceof net.minecraft.item.ShieldItem && EnchantmentHelper.getLevel(Enchantments.LOYALTY, offStack) > 0) {
+					} else if (offStack.getItem() instanceof net.minecraft.item.ShieldItem && EnchantmentHelper.getLevel(player.getWorld().getRegistryManager().getWrapperOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT).getOrThrow(Enchantments.LOYALTY), offStack) > 0) {
 						shieldToThrow = offStack;
 						isOffhand = true;
 					}
@@ -164,7 +162,8 @@ public class Bettershield implements ModInitializer {
 							}
 						}
 
-						int masterineLevel = EnchantmentHelper.getLevel(BetterShieldEnchantments.MASTERINE, shieldToThrow);
+						// --- 1.21 FIX: DynamicRegistryManager for Custom Enchants ---
+						int masterineLevel = EnchantmentHelper.getLevel(player.getWorld().getRegistryManager().getWrapperOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT).getOrThrow(BetterShieldEnchantments.MASTERINE), shieldToThrow);
 						int baseCd = config.cooldowns.throwCooldown;
 						int finalCd = (int) (baseCd * (1.0f - (masterineLevel * 0.20f)));
 
@@ -177,7 +176,6 @@ public class Bettershield implements ModInitializer {
 			});
 		});
 
-		// --- BASH & SLAM ---
 		ServerPlayNetworking.registerGlobalReceiver(ShieldAttackPayload.ID, (payload, context) -> {
 			ServerPlayerEntity player = context.player();
 			player.getServer().execute(() -> {
@@ -193,7 +191,6 @@ public class Bettershield implements ModInitializer {
 						long now = player.getWorld().getTime();
 
 						if (player.isOnGround()) {
-							// --- BASH ---
 							if (BASH_COOLDOWN.containsKey(player.getUuid())) {
 								if (now < BASH_COOLDOWN.get(player.getUuid())) return;
 							}
@@ -223,7 +220,8 @@ public class Bettershield implements ModInitializer {
 							Vec3d pos = player.getPos().add(rotation.multiply(1.5));
 							Box box = new Box(pos.x - 1, pos.y, pos.z - 1, pos.x + 1, pos.y + 2, pos.z + 1);
 
-							int densityLevel = EnchantmentHelper.getLevel(BetterShieldEnchantments.SHIELD_DENSITY, shieldStack);
+							// --- 1.21 FIX: DynamicRegistryManager for Custom Enchants ---
+							int densityLevel = EnchantmentHelper.getLevel(player.getWorld().getRegistryManager().getWrapperOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT).getOrThrow(BetterShieldEnchantments.SHIELD_DENSITY), shieldStack);
 							float damageMult = 1.0f + (densityLevel * 0.10f);
 
 							if (shieldStack.getItem() instanceof ModShieldItem modShield) {
@@ -251,14 +249,14 @@ public class Bettershield implements ModInitializer {
 							}
 							player.getWorld().playSound(null, player.getBlockPos(), SoundEvents.ITEM_SHIELD_BLOCK, SoundCategory.PLAYERS, 1.0f, 0.5f);
 
-							int masterineLevel = EnchantmentHelper.getLevel(BetterShieldEnchantments.MASTERINE, shieldStack);
+							// --- 1.21 FIX: DynamicRegistryManager ---
+							int masterineLevel = EnchantmentHelper.getLevel(player.getWorld().getRegistryManager().getWrapperOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT).getOrThrow(BetterShieldEnchantments.MASTERINE), shieldStack);
 							int baseCd = config.cooldowns.bashCooldown;
 							int finalCd = (int) (baseCd * (1.0f - (masterineLevel * 0.20f)));
 
 							triggerCooldown(player, shieldStack, 1, finalCd);
 
 						} else {
-							// --- SLAM ---
 							if (player.isTouchingWater()) return;
 							if (SLAM_COOLDOWN.containsKey(player.getUuid())) {
 								if (now < SLAM_COOLDOWN.get(player.getUuid())) return;
@@ -275,7 +273,9 @@ public class Bettershield implements ModInitializer {
 							player.fallDistance = 0;
 
 							SLAM_START_Y.put(player.getUuid(), player.getY());
-							int masterineLevel = EnchantmentHelper.getLevel(BetterShieldEnchantments.MASTERINE, shieldStack);
+
+							// --- 1.21 FIX: DynamicRegistryManager ---
+							int masterineLevel = EnchantmentHelper.getLevel(player.getWorld().getRegistryManager().getWrapperOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT).getOrThrow(BetterShieldEnchantments.MASTERINE), shieldStack);
 							int baseCd = config.cooldowns.slamCooldown;
 							int finalCd = (int) (baseCd * (1.0f - (masterineLevel * 0.20f)));
 
@@ -286,7 +286,6 @@ public class Bettershield implements ModInitializer {
 			});
 		});
 
-		// --- SERVER DISCONNECT CLEANUP ---
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
 			UUID uuid = handler.player.getUuid();
 			PARRY_DEBOUNCE.remove(uuid);
@@ -343,18 +342,15 @@ public class Bettershield implements ModInitializer {
 		PARRY_DEBOUNCE.put(player.getUuid(), player.getWorld().getTime());
 	}
 
-	// =========================================================================
-	// --- 1.20.5 FIX: MANUAL CODEC LAMBDAS (Bypasses Mojang Tuple Bug) ---
-	// =========================================================================
-
+	// --- 1.21 FIX: Identifier.of() ---
 	public record ShieldAttackPayload() implements CustomPayload {
-		public static final Id<ShieldAttackPayload> ID = new Id<>(new Identifier(Bettershield.MOD_ID, "shield_attack"));
+		public static final Id<ShieldAttackPayload> ID = new Id<>(Identifier.of(Bettershield.MOD_ID, "shield_attack"));
 		public static final PacketCodec<RegistryByteBuf, ShieldAttackPayload> CODEC = PacketCodec.unit(new ShieldAttackPayload());
 		@Override public Id<? extends CustomPayload> getId() { return ID; }
 	}
 
 	public record ShieldThrowPayload(int chargeTicks) implements CustomPayload {
-		public static final Id<ShieldThrowPayload> ID = new Id<>(new Identifier(Bettershield.MOD_ID, "shield_throw"));
+		public static final Id<ShieldThrowPayload> ID = new Id<>(Identifier.of(Bettershield.MOD_ID, "shield_throw"));
 		public static final PacketCodec<RegistryByteBuf, ShieldThrowPayload> CODEC = PacketCodec.of(
 				(payload, buf) -> buf.writeInt(payload.chargeTicks()),
 				buf -> new ShieldThrowPayload(buf.readInt())
@@ -363,7 +359,7 @@ public class Bettershield implements ModInitializer {
 	}
 
 	public record StunMobsPayload(int entityId, int duration) implements CustomPayload {
-		public static final Id<StunMobsPayload> ID = new Id<>(new Identifier(Bettershield.MOD_ID, "stun_mobs"));
+		public static final Id<StunMobsPayload> ID = new Id<>(Identifier.of(Bettershield.MOD_ID, "stun_mobs"));
 		public static final PacketCodec<RegistryByteBuf, StunMobsPayload> CODEC = PacketCodec.of(
 				(payload, buf) -> {
 					buf.writeInt(payload.entityId());
@@ -375,7 +371,7 @@ public class Bettershield implements ModInitializer {
 	}
 
 	public record SyncCooldownPayload(int type, int duration) implements CustomPayload {
-		public static final Id<SyncCooldownPayload> ID = new Id<>(new Identifier(Bettershield.MOD_ID, "sync_cooldown"));
+		public static final Id<SyncCooldownPayload> ID = new Id<>(Identifier.of(Bettershield.MOD_ID, "sync_cooldown"));
 		public static final PacketCodec<RegistryByteBuf, SyncCooldownPayload> CODEC = PacketCodec.of(
 				(payload, buf) -> {
 					buf.writeInt(payload.type());
@@ -387,7 +383,7 @@ public class Bettershield implements ModInitializer {
 	}
 
 	public record SlamEffectPayload(double x, double y, double z, String blockId) implements CustomPayload {
-		public static final Id<SlamEffectPayload> ID = new Id<>(new Identifier(Bettershield.MOD_ID, "slam_effect"));
+		public static final Id<SlamEffectPayload> ID = new Id<>(Identifier.of(Bettershield.MOD_ID, "slam_effect"));
 		public static final PacketCodec<RegistryByteBuf, SlamEffectPayload> CODEC = PacketCodec.of(
 				(payload, buf) -> {
 					buf.writeDouble(payload.x());
@@ -401,7 +397,7 @@ public class Bettershield implements ModInitializer {
 	}
 
 	public record BashTrailPayload(int entityId, int duration) implements CustomPayload {
-		public static final Id<BashTrailPayload> ID = new Id<>(new Identifier(Bettershield.MOD_ID, "bash_trail"));
+		public static final Id<BashTrailPayload> ID = new Id<>(Identifier.of(Bettershield.MOD_ID, "bash_trail"));
 		public static final PacketCodec<RegistryByteBuf, BashTrailPayload> CODEC = PacketCodec.of(
 				(payload, buf) -> {
 					buf.writeInt(payload.entityId());

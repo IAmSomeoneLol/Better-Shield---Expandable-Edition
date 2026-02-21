@@ -15,7 +15,6 @@ import net.minecraft.util.Identifier;
 
 public class BetterShieldItems {
 
-    // --- 1.20.5 FIX: Replaced FabricItemSettings with Item.Settings ---
     public static final Item DIAMOND_SHIELD = new ModShieldItem(
             new Item.Settings().maxCount(1),
             437, 0.15f, 0.10f, false, 10
@@ -29,9 +28,10 @@ public class BetterShieldItems {
     public static final RecipeSerializer<BetterShieldDecorationRecipe> SHIELD_DECORATION_SERIALIZER = new SpecialRecipeSerializer<>(BetterShieldDecorationRecipe::new);
 
     public static void register() {
-        Registry.register(Registries.ITEM, new Identifier(Bettershield.MOD_ID, "diamond_shield"), DIAMOND_SHIELD);
-        Registry.register(Registries.ITEM, new Identifier(Bettershield.MOD_ID, "netherite_shield"), NETHERITE_SHIELD);
-        Registry.register(Registries.RECIPE_SERIALIZER, new Identifier(Bettershield.MOD_ID, "shield_decoration"), SHIELD_DECORATION_SERIALIZER);
+        // --- 1.21 FIX: Identifier.of() ---
+        Registry.register(Registries.ITEM, Identifier.of(Bettershield.MOD_ID, "diamond_shield"), DIAMOND_SHIELD);
+        Registry.register(Registries.ITEM, Identifier.of(Bettershield.MOD_ID, "netherite_shield"), NETHERITE_SHIELD);
+        Registry.register(Registries.RECIPE_SERIALIZER, Identifier.of(Bettershield.MOD_ID, "shield_decoration"), SHIELD_DECORATION_SERIALIZER);
 
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.COMBAT).register(content -> {
             content.addAfter(Items.SHIELD, DIAMOND_SHIELD);

@@ -1,6 +1,5 @@
 package nel.bettershield.mixin;
 
-import nel.bettershield.registry.BetterShieldEnchantments;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;

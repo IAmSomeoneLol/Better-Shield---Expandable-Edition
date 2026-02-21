@@ -1,6 +1,5 @@
 package nel.bettershield.mixin;
 
-import nel.bettershield.registry.BetterShieldEnchantments;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.EnchantmentLevelEntry;

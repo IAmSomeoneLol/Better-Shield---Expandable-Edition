@@ -3,7 +3,6 @@ package nel.bettershield.mixin;
 import nel.bettershield.BetterShieldConfig;
 import nel.bettershield.Bettershield;
 import nel.bettershield.registry.BetterShieldCriteria;
-import nel.bettershield.registry.BetterShieldEnchantments;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.LivingEntity;

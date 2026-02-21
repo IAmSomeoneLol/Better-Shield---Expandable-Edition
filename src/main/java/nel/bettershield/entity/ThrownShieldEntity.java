@@ -20,6 +20,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.Registries;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.Hand;
@@ -42,7 +43,8 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
     }
 
     public ThrownShieldEntity(World world, LivingEntity owner, ItemStack stack) {
-        super(Bettershield.THROWN_SHIELD_ENTITY_TYPE, owner.getX(), owner.getEyeY() - 0.1, owner.getZ(), world, stack);
+        // 1.21 FIX: Added mandatory double stack argument to constructor
+        super(Bettershield.THROWN_SHIELD_ENTITY_TYPE, owner.getX(), owner.getEyeY() - 0.10000000149011612D, owner.getZ(), world, stack, stack);
         this.setOwner(owner);
         this.setStack(stack);
     }
@@ -174,8 +176,10 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
         Entity target = entityHitResult.getEntity();
         float damage = this.impactDamage;
 
+        // 1.21 FIX: Registry lookups
+        var enchantmentRegistry = this.getWorld().getRegistryManager().getWrapperOrThrow(RegistryKeys.ENCHANTMENT);
         float damageMult = 1.0f;
-        int density = EnchantmentHelper.getLevel(BetterShieldEnchantments.SHIELD_DENSITY, this.getStack());
+        int density = EnchantmentHelper.getLevel(enchantmentRegistry.getOrThrow(BetterShieldEnchantments.SHIELD_DENSITY), this.getStack());
         damageMult += (density * 0.1f);
 
         if (this.getStack().getItem() instanceof ModShieldItem modShield) {
@@ -190,11 +194,9 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
 
             if (this.stunEnabled && target instanceof LivingEntity livingTarget) {
                 BetterShieldConfig config = Bettershield.getConfig();
-
                 var stunEntry = Registries.STATUS_EFFECT.getEntry(Bettershield.STUN_EFFECT);
                 livingTarget.addStatusEffect(new StatusEffectInstance(stunEntry, config.stunMechanics.stunDuration, 0, false, false, true));
 
-                // --- 1.20.5 FIX: Using the newly defined CustomPayload to send the Stun! ---
                 if (!this.getWorld().isClient) {
                     Bettershield.StunMobsPayload stunPayload = new Bettershield.StunMobsPayload(livingTarget.getId(), config.stunMechanics.stunDuration);
                     this.getWorld().getPlayers().forEach(p -> net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send((ServerPlayerEntity)p, stunPayload));
@@ -202,7 +204,7 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
             }
 
             if (owner instanceof ServerPlayerEntity serverPlayer) {
-                if (EnchantmentHelper.getLevel(Enchantments.LOYALTY, this.getStack()) > 0) {
+                if (EnchantmentHelper.getLevel(enchantmentRegistry.getOrThrow(Enchantments.LOYALTY), this.getStack()) > 0) {
                     BetterShieldCriteria.SHIELD_THROW_HIT.trigger(serverPlayer);
                 }
 
@@ -226,7 +228,7 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
             target.damage(this.getDamageSources().thrown(this, this.getOwner()), damage);
         }
 
-        int piercingLevel = EnchantmentHelper.getLevel(Enchantments.PIERCING, this.getStack());
+        int piercingLevel = EnchantmentHelper.getLevel(enchantmentRegistry.getOrThrow(Enchantments.PIERCING), this.getStack());
         this.entitiesHitCount++;
 
         if (this.entitiesHitCount > piercingLevel) {
