@@ -10,13 +10,11 @@
 		"SlamImpactMixin",
 		"StunDamageMixin",
 		"SlamFallReductionMixin",
-		"ShieldItemMixin",
 		"ReflectKillMixin",
 		"SlamWaterMixin",
 		"ExplosiveParryMixin",
 		"SwiftSneakMixin",
 		"FireResistanceMixin",
-		"ShieldDecorationRecipeMixin",
 		"ActiveArmorMixin"
 	],
 	"injectors": {

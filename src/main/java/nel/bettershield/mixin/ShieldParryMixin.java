@@ -35,7 +35,7 @@ public abstract class ShieldParryMixin {
     @Shadow public abstract ItemStack getActiveItem();
 
     @Inject(method = "damage", at = @At("HEAD"), cancellable = true)
-    private void onDamage(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+    private void onDamage(ServerWorld serverWorld, DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
         LivingEntity user = (LivingEntity) (Object) this;
         BetterShieldConfig config = Bettershield.getConfig();
 
@@ -44,7 +44,7 @@ public abstract class ShieldParryMixin {
             ItemStack activeShield = this.getActiveItem();
             if (activeShield.isEmpty()) activeShield = player.getMainHandStack();
 
-            var enchantmentRegistry = player.getWorld().getRegistryManager().getWrapperOrThrow(RegistryKeys.ENCHANTMENT);
+            var enchantmentRegistry = player.getWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
 
             var parryfulEntry = enchantmentRegistry.getOptional(BetterShieldEnchantments.PARRYFUL);
             int levelParryful = parryfulEntry.isPresent() ? EnchantmentHelper.getLevel(parryfulEntry.get(), activeShield) : 0;
@@ -112,8 +112,8 @@ public abstract class ShieldParryMixin {
                             oldProjectile.discard();
                         }
 
-                        if (player.getWorld() instanceof ServerWorld serverWorld) {
-                            serverWorld.spawnParticles(Bettershield.SPARK_PARTICLE,
+                        if (player.getWorld() instanceof ServerWorld serverWorldSpark) {
+                            serverWorldSpark.spawnParticles(Bettershield.SPARK_PARTICLE,
                                     player.getX(), player.getEyeY() - 0.2, player.getZ(),
                                     10, 0.3, 0.3, 0.3, 0.1);
                         }
@@ -125,7 +125,9 @@ public abstract class ShieldParryMixin {
                     }
 
                     Bettershield.setParryDebounce(player);
-                    player.getItemCooldownManager().set(activeShield.getItem(), 0);
+
+                    // 1.21.2 FIX
+                    player.getItemCooldownManager().set(activeShield, 0);
                     this.damageShield(player, 1);
                     player.getWorld().playSound(null, player.getBlockPos(), SoundEvents.ITEM_TRIDENT_HIT, SoundCategory.PLAYERS, 1.0f, 1.0f);
                     return;
@@ -150,8 +152,8 @@ public abstract class ShieldParryMixin {
                             player.getWorld().getPlayers().forEach(p -> ServerPlayNetworking.send((ServerPlayerEntity)p, stunPayload));
                         }
 
-                        if (player.getWorld() instanceof ServerWorld serverWorld) {
-                            serverWorld.spawnParticles(Bettershield.SPARK_PARTICLE,
+                        if (player.getWorld() instanceof ServerWorld serverWorldSpark) {
+                            serverWorldSpark.spawnParticles(Bettershield.SPARK_PARTICLE,
                                     player.getX(), player.getEyeY() - 0.2, player.getZ(),
                                     10, 0.3, 0.3, 0.3, 0.1);
                         }
@@ -163,7 +165,9 @@ public abstract class ShieldParryMixin {
                     }
 
                     Bettershield.setParryDebounce(player);
-                    player.getItemCooldownManager().set(activeShield.getItem(), 0);
+
+                    // 1.21.2 FIX
+                    player.getItemCooldownManager().set(activeShield, 0);
                     this.damageShield(player, 1);
 
                     player.getWorld().playSound(null, player.getBlockPos(), SoundEvents.BLOCK_ANVIL_LAND, SoundCategory.PLAYERS, 1.0f, 1.5f);

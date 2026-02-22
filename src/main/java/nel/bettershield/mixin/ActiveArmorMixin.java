@@ -17,11 +17,10 @@ public abstract class ActiveArmorMixin {
     @ModifyVariable(method = "damage", at = @At("HEAD"), argsOnly = true)
     private float reduceDamageWithActiveArmor(float amount, DamageSource source) {
         LivingEntity entity = (LivingEntity) (Object) this;
-
         ItemStack offHand = entity.getOffHandStack();
 
         if (offHand.getItem() instanceof ShieldItem) {
-            int level = EnchantmentHelper.getLevel(entity.getWorld().getRegistryManager().getWrapperOrThrow(RegistryKeys.ENCHANTMENT).getOrThrow(BetterShieldEnchantments.ACTIVE_ARMOR), offHand);
+            int level = EnchantmentHelper.getLevel(entity.getWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT).getOrThrow(BetterShieldEnchantments.ACTIVE_ARMOR), offHand);
 
             if (level > 0) {
                 float reduction = level * 0.04f;

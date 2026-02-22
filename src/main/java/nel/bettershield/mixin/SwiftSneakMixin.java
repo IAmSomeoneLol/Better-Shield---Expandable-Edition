@@ -28,9 +28,7 @@ public abstract class SwiftSneakMixin {
         }
 
         if (this.isBlocking() && this.getActiveItem().getItem() instanceof ShieldItem) {
-
-            // 1.21 FIX: Use the DynamicRegistry to check for Swift Sneak on the Leggings slot
-            var registry = player.getWorld().getRegistryManager().getWrapperOrThrow(RegistryKeys.ENCHANTMENT);
+            var registry = player.getWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
             int level = EnchantmentHelper.getLevel(registry.getOrThrow(Enchantments.SWIFT_SNEAK), player.getEquippedStack(net.minecraft.entity.EquipmentSlot.LEGS));
 
             if (level > 0) {

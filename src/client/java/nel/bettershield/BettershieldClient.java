@@ -3,7 +3,6 @@ package nel.bettershield;
 import nel.bettershield.client.ShieldHudOverlay;
 import nel.bettershield.client.SparkParticle;
 import nel.bettershield.client.CloudParticle;
-import nel.bettershield.client.ThrownShieldEntityRenderer;
 import nel.bettershield.client.ModShieldRenderer;
 import nel.bettershield.registry.BetterShieldItems;
 import net.fabricmc.api.ClientModInitializer;

@@ -22,6 +22,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.EntityHitResult;
@@ -40,8 +41,6 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
     private float impactDamage = 2.0f;
     private boolean stunEnabled = false;
     private int entitiesHitCount = 0;
-
-    // Memory list to prevent infinite collision loops
     private final List<Integer> hitEntities = new ArrayList<>();
 
     public ThrownShieldEntity(EntityType<? extends PersistentProjectileEntity> entityType, World world) {
@@ -49,13 +48,8 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
     }
 
     public ThrownShieldEntity(World world, LivingEntity owner, ItemStack stack) {
-        // 1.21 MASTER FIX: We pass a BLANK shield to super()!
-        // This tricks the Vanilla physics engine into thinking this projectile has 0 piercing.
-        // It entirely disables the broken Vanilla 'while' loop that was freezing your game!
         super(Bettershield.THROWN_SHIELD_ENTITY_TYPE, owner.getX(), owner.getEyeY() - 0.10000000149011612D, owner.getZ(), world, new ItemStack(Items.SHIELD), new ItemStack(Items.SHIELD));
-
         this.setOwner(owner);
-        // We store the REAL enchanted shield in our custom data tracker
         this.setStack(stack);
     }
 
@@ -138,7 +132,6 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
     @Override
     public void onPlayerCollision(PlayerEntity player) {
         if (this.age < 5) return;
-
         if (this.isOwner(player) || this.getOwner() == null) {
             if (!this.returning && !this.getWorld().isClient) {
                 tryCatchShield(player);
@@ -148,8 +141,6 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
 
     private void tryCatchShield(Entity owner) {
         if (!this.getWorld().isClient && owner instanceof PlayerEntity player) {
-
-            // Fixes duplicate items if the player catches the shield in Creative mode
             if (player.isCreative()) {
                 this.discard();
                 player.playSound(SoundEvents.ITEM_TRIDENT_RETURN, 1.0F, 1.0F);
@@ -189,7 +180,6 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
     @Override
     protected void onCollision(HitResult hitResult) {
         HitResult.Type type = hitResult.getType();
-
         if (type == HitResult.Type.ENTITY) {
             this.onEntityHit((EntityHitResult) hitResult);
         } else if (type == HitResult.Type.BLOCK) {
@@ -205,12 +195,11 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
 
         Entity target = entityHitResult.getEntity();
 
-        // 1.21 FIX: Both Client and Server successfully register the hit now!
         if (this.hitEntities.contains(target.getId())) return;
         this.hitEntities.add(target.getId());
 
         int piercingLevel = 0;
-        var enchantmentRegistry = this.getWorld().getRegistryManager().getWrapperOrThrow(RegistryKeys.ENCHANTMENT);
+        var enchantmentRegistry = this.getWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
         var piercingEntry = enchantmentRegistry.getOptional(Enchantments.PIERCING);
         if (piercingEntry.isPresent()) {
             piercingLevel = EnchantmentHelper.getLevel(piercingEntry.get(), this.getStack());
@@ -218,7 +207,6 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
 
         this.entitiesHitCount++;
 
-        // Process physics on both threads
         if (this.entitiesHitCount > piercingLevel) {
             this.returning = true;
             this.setNoClip(true);
@@ -230,9 +218,6 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
             }
         }
 
-        // =========================================================================
-        // NOW we tell the Client thread to stop, safely after it logged the hit!
-        // =========================================================================
         if (this.getWorld().isClient) return;
 
         float damage = this.impactDamage;
@@ -252,7 +237,7 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
 
         Entity owner = this.getOwner();
         if (owner instanceof LivingEntity livingOwner) {
-            target.damage(this.getDamageSources().trident(this, livingOwner), damage);
+            target.damage((ServerWorld) this.getWorld(), this.getDamageSources().trident(this, livingOwner), damage);
 
             if (this.stunEnabled && target instanceof LivingEntity livingTarget) {
                 BetterShieldConfig config = Bettershield.getConfig();
@@ -288,13 +273,12 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
             }
 
         } else {
-            target.damage(this.getDamageSources().thrown(this, this.getOwner()), damage);
+            target.damage((ServerWorld) this.getWorld(), this.getDamageSources().thrown(this, this.getOwner()), damage);
         }
     }
 
     @Override
     protected boolean canHit(Entity entity) {
-        // Enforces the memory list so raycasts pass clean through after hitting once
         if (this.hitEntities.contains(entity.getId())) {
             return false;
         }
@@ -304,7 +288,7 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
     @Override
     public void writeCustomDataToNbt(NbtCompound nbt) {
         super.writeCustomDataToNbt(nbt);
-        nbt.put("Shield", this.getStack().encodeAllowEmpty(this.getRegistryManager()));
+        nbt.put("Shield", this.getStack().toNbt(this.getRegistryManager()));
         nbt.putBoolean("Returning", this.returning);
         nbt.putBoolean("IsOffhand", this.dataTracker.get(IS_OFFHAND));
         nbt.putFloat("ImpactDamage", this.impactDamage);

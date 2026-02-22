@@ -44,7 +44,7 @@ public abstract class ExplosiveParryMixin {
 
                 if (activeShield.isEmpty()) activeShield = player.getMainHandStack();
 
-                var enchantmentRegistry = player.getWorld().getRegistryManager().getWrapperOrThrow(RegistryKeys.ENCHANTMENT);
+                var enchantmentRegistry = player.getWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
 
                 var parryfulEntry = enchantmentRegistry.getOptional(BetterShieldEnchantments.PARRYFUL);
                 int levelParryful = parryfulEntry.isPresent() ? EnchantmentHelper.getLevel(parryfulEntry.get(), activeShield) : 0;
@@ -120,7 +120,9 @@ public abstract class ExplosiveParryMixin {
 
                     Bettershield.triggerCooldown(player, activeShield, 4, finalCd);
                     Bettershield.setParryDebounce(player);
-                    player.getItemCooldownManager().set(activeShield.getItem(), 0);
+
+                    // 1.21.2 FIX: set() now takes the ItemStack instead of the Item!
+                    player.getItemCooldownManager().set(activeShield, 0);
 
                     activeShield.damage(1, player, player.getActiveHand() == Hand.MAIN_HAND ? net.minecraft.entity.EquipmentSlot.MAINHAND : net.minecraft.entity.EquipmentSlot.OFFHAND);
                     player.getWorld().playSound(null, player.getBlockPos(), SoundEvents.ITEM_FIRECHARGE_USE, SoundCategory.PLAYERS, 1.0f, 1.5f);

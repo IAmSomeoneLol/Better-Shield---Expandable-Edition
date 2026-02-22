@@ -7,7 +7,8 @@ import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.util.Identifier;
-import net.minecraft.client.render.RenderTickCounter; // 1.21 FIX: RenderTickCounter
+import net.minecraft.client.render.RenderTickCounter;
+import net.minecraft.client.render.RenderLayer;
 
 import java.util.UUID;
 import java.util.ArrayList;
@@ -15,7 +16,6 @@ import java.util.List;
 
 public class ShieldHudOverlay implements HudRenderCallback {
 
-    // 1.21 FIX: Identifier.of()
     private static final Identifier BASH_ICON = Identifier.of("bettershield", "textures/gui/bash.png");
     private static final Identifier SLAM_ICON = Identifier.of("bettershield", "textures/gui/slam.png");
     private static final Identifier PARRY_MELEE_ICON = Identifier.of("bettershield", "textures/gui/parry_melee.png");
@@ -28,14 +28,12 @@ public class ShieldHudOverlay implements HudRenderCallback {
     private long projFinishTime = 0;
     private long throwFinishTime = 0;
 
-    // 1.21 FIX: Changed float tickDelta to RenderTickCounter
     @Override
     public void onHudRender(DrawContext context, RenderTickCounter tickCounter) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null) return;
 
         BetterShieldConfig config = AutoConfig.getConfigHolder(BetterShieldConfig.class).getConfig();
-
         if (config.hud.hudMode == BetterShieldConfig.Hud.HudMode.OFF) return;
 
         int width = client.getWindow().getScaledWidth();
@@ -61,18 +59,15 @@ public class ShieldHudOverlay implements HudRenderCallback {
         checkAndAdd(iconsToRender, uuid, now, Bettershield.THROW_COOLDOWN, Bettershield.THROW_MAX, throwFinishTime, THROW_ICON, config.hud.hudMode, "throw");
 
         int spacing = 12;
-
         for (int i = 0; i < iconsToRender.size(); i++) {
             IconData data = iconsToRender.get(i);
             drawBar(context, i * spacing, 0, data.icon, data.progress);
-
             if (data.progress >= 1.0f) {
                 updateFinishTimer(data.type, now);
             } else {
                 resetFinishTimer(data.type);
             }
         }
-
         context.getMatrices().pop();
     }
 
@@ -82,7 +77,6 @@ public class ShieldHudOverlay implements HudRenderCallback {
                              long finishTime, Identifier icon,
                              BetterShieldConfig.Hud.HudMode mode,
                              String type) {
-
         long expiry = cdMap.getOrDefault(uuid, 0L);
         boolean isActive = expiry > now;
         boolean justFinished = finishTime != 0 && (now - finishTime) < 20;
@@ -121,10 +115,8 @@ public class ShieldHudOverlay implements HudRenderCallback {
         int srcW = 16;
         int srcH = 16;
 
-        context.setShaderColor(0.25f, 0.25f, 0.25f, 1.0f);
-        context.drawTexture(icon, x, y, destW, destH, 0, 0, srcW, srcH, srcW, srcH);
-
-        context.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
+        // 1.21.2 FIX: Use RenderLayer for textures with DrawContext
+        context.drawTexture(RenderLayer::getGuiTextured, icon, x, y, 0, 0, destW, destH, srcW, srcH);
 
         int filledDestH = (int) (destH * progress);
         int emptyDestH = destH - filledDestH;
@@ -133,23 +125,14 @@ public class ShieldHudOverlay implements HudRenderCallback {
         int srcFilledH = srcH - srcStartV;
 
         if (filledDestH > 0) {
-            context.drawTexture(icon,
-                    x, y + emptyDestH,
-                    destW, filledDestH,
-                    0, srcStartV,
-                    srcW, srcFilledH,
-                    srcW, srcH
-            );
+            context.drawTexture(RenderLayer::getGuiTextured, icon, x, y + emptyDestH, 0, srcStartV, destW, filledDestH, srcW, srcH);
         }
-
-        context.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
     private static class IconData {
         Identifier icon;
         float progress;
         String type;
-
         public IconData(Identifier icon, float progress, String type) {
             this.icon = icon;
             this.progress = progress;

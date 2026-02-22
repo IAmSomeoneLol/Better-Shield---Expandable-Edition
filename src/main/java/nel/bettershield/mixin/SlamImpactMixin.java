@@ -56,7 +56,7 @@ public abstract class SlamImpactMixin {
                 stack = player.getStackInHand(Hand.OFF_HAND);
             }
 
-            var enchantmentRegistry = player.getWorld().getRegistryManager().getWrapperOrThrow(RegistryKeys.ENCHANTMENT);
+            var enchantmentRegistry = player.getWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
 
             var foamEntry = enchantmentRegistry.getOptional(BetterShieldEnchantments.SLAM_FOAM);
             int levelFoam = foamEntry.isPresent() ? EnchantmentHelper.getLevel(foamEntry.get(), stack) : 0;
@@ -120,7 +120,8 @@ public abstract class SlamImpactMixin {
 
             for (Entity target : targets) {
                 if (target instanceof LivingEntity living) {
-                    living.damage(player.getDamageSources().playerAttack(player), impactDamage);
+                    // 1.21.2 FIX
+                    living.damage(world, player.getDamageSources().playerAttack(player), impactDamage);
                     living.addVelocity(0, 0.6, 0);
                     living.velocityModified = true;
 

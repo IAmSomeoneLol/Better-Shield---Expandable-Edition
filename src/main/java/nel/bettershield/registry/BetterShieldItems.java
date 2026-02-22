@@ -2,13 +2,10 @@ package nel.bettershield.registry;
 
 import nel.bettershield.Bettershield;
 import nel.bettershield.item.ModShieldItem;
-import nel.bettershield.recipe.BetterShieldDecorationRecipe;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroups;
 import net.minecraft.item.Items;
-import net.minecraft.recipe.RecipeSerializer;
-import net.minecraft.recipe.SpecialRecipeSerializer;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.util.Identifier;
@@ -25,13 +22,9 @@ public class BetterShieldItems {
             538, 0.25f, 0.20f, true, 15
     );
 
-    public static final RecipeSerializer<BetterShieldDecorationRecipe> SHIELD_DECORATION_SERIALIZER = new SpecialRecipeSerializer<>(BetterShieldDecorationRecipe::new);
-
     public static void register() {
-        // --- 1.21 FIX: Identifier.of() ---
         Registry.register(Registries.ITEM, Identifier.of(Bettershield.MOD_ID, "diamond_shield"), DIAMOND_SHIELD);
         Registry.register(Registries.ITEM, Identifier.of(Bettershield.MOD_ID, "netherite_shield"), NETHERITE_SHIELD);
-        Registry.register(Registries.RECIPE_SERIALIZER, Identifier.of(Bettershield.MOD_ID, "shield_decoration"), SHIELD_DECORATION_SERIALIZER);
 
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.COMBAT).register(content -> {
             content.addAfter(Items.SHIELD, DIAMOND_SHIELD);

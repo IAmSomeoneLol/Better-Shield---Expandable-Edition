@@ -6,6 +6,7 @@ import net.minecraft.entity.effect.StatusEffectCategory;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 
 public class StunStatusEffect extends StatusEffect {
     public StunStatusEffect() {
@@ -16,9 +17,8 @@ public class StunStatusEffect extends StatusEffect {
     public boolean canApplyUpdateEffect(int duration, int amplifier) { return true; }
 
     @Override
-    public boolean applyUpdateEffect(LivingEntity entity, int amplifier) {
+    public boolean applyUpdateEffect(ServerWorld world, LivingEntity entity, int amplifier) {
         if (entity instanceof PlayerEntity) {
-            // --- 1.20.5 FIX: StatusEffects.SLOWNESS is already a RegistryEntry! ---
             entity.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 60, 3, false, false, true));
         }
         return true;
