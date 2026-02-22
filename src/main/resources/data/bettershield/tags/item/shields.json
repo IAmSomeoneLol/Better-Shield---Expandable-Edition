@@ -1,0 +1,8 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:shield",
+    "bettershield:diamond_shield",
+    "bettershield:netherite_shield"
+  ]
+}

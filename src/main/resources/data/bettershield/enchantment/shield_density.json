@@ -1,0 +1,11 @@
+{
+  "description": { "translate": "enchantment.bettershield.shield_density" },
+  "supported_items": "#bettershield:shields",
+  "primary_items": "#bettershield:shields",
+  "weight": 10,
+  "max_level": 3,
+  "min_cost": { "base": 1, "per_level_above_first": 10 },
+  "max_cost": { "base": 51, "per_level_above_first": 10 },
+  "anvil_cost": 1,
+  "slots": [ "mainhand", "offhand" ]
+}

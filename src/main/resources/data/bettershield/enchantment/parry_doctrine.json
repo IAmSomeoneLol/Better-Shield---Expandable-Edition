@@ -1,0 +1,11 @@
+{
+  "description": { "translate": "enchantment.bettershield.parry_doctrine" },
+  "supported_items": "#bettershield:shields",
+  "primary_items": "#bettershield:shields",
+  "weight": 2,
+  "max_level": 2,
+  "min_cost": { "base": 15, "per_level_above_first": 20 },
+  "max_cost": { "base": 65, "per_level_above_first": 20 },
+  "anvil_cost": 4,
+  "slots": [ "mainhand", "offhand" ]
+}

@@ -1,0 +1,11 @@
+{
+  "description": { "translate": "enchantment.bettershield.active_armor" },
+  "supported_items": "#bettershield:shields",
+  "primary_items": "#bettershield:shields",
+  "weight": 1,
+  "max_level": 3,
+  "min_cost": { "base": 25, "per_level_above_first": 50 },
+  "max_cost": { "base": 75, "per_level_above_first": 50 },
+  "anvil_cost": 8,
+  "slots": [ "mainhand", "offhand" ]
+}

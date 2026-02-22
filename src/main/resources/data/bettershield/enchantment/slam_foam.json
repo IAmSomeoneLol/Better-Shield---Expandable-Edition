@@ -1,0 +1,11 @@
+{
+  "description": { "translate": "enchantment.bettershield.slam_foam" },
+  "supported_items": "#bettershield:shields",
+  "primary_items": "#bettershield:shields",
+  "weight": 5,
+  "max_level": 2,
+  "min_cost": { "base": 5, "per_level_above_first": 15 },
+  "max_cost": { "base": 55, "per_level_above_first": 15 },
+  "anvil_cost": 2,
+  "slots": [ "mainhand", "offhand" ]
+}
