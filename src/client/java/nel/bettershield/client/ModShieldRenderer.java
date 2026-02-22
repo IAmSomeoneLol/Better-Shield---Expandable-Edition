@@ -17,7 +17,7 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.BannerPatternsComponent;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.ModelTransformationMode; // Re-imported correctly for 1.21.2
+import net.minecraft.item.ModelTransformationMode;
 import net.minecraft.util.DyeColor;
 import net.minecraft.util.Identifier;
 
@@ -66,9 +66,10 @@ public class ModShieldRenderer implements BuiltinItemRendererRegistry.DynamicIte
             DyeColor baseColor = stack.getOrDefault(DataComponentTypes.BASE_COLOR, DyeColor.WHITE);
             BannerPatternsComponent patterns = stack.getOrDefault(DataComponentTypes.BANNER_PATTERNS, BannerPatternsComponent.DEFAULT);
 
+            // 1.21.2 FIX: Added the extra 'false' at the end to match the new 11-argument method signature
             BannerBlockEntityRenderer.renderCanvas(
                     matrices, vertexConsumers, light, overlay, this.model.getPlate(), spriteId, false,
-                    baseColor, patterns, stack.hasGlint()
+                    baseColor, patterns, stack.hasGlint(), false
             );
         } else {
             this.model.getPlate().render(matrices, vertexConsumer, light, overlay);

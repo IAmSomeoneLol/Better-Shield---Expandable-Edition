@@ -7,6 +7,7 @@ import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ShieldItem;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.server.world.ServerWorld;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
@@ -14,8 +15,9 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 @Mixin(LivingEntity.class)
 public abstract class ActiveArmorMixin {
 
-    @ModifyVariable(method = "damage", at = @At("HEAD"), argsOnly = true)
-    private float reduceDamageWithActiveArmor(float amount, DamageSource source) {
+    // In 1.21.2, amount is the second parameter (ordinal = 0 for floats) after ServerWorld
+    @ModifyVariable(method = "damage", at = @At("HEAD"), argsOnly = true, ordinal = 0)
+    private float reduceDamageWithActiveArmor(float amount, ServerWorld world, DamageSource source) {
         LivingEntity entity = (LivingEntity) (Object) this;
         ItemStack offHand = entity.getOffHandStack();
 

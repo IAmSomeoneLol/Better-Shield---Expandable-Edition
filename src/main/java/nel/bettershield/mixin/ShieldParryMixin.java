@@ -34,6 +34,7 @@ public abstract class ShieldParryMixin {
     @Shadow public abstract int getItemUseTime();
     @Shadow public abstract ItemStack getActiveItem();
 
+    // 1.21.2 FIX: ServerWorld prepended to the signature!
     @Inject(method = "damage", at = @At("HEAD"), cancellable = true)
     private void onDamage(ServerWorld serverWorld, DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
         LivingEntity user = (LivingEntity) (Object) this;
@@ -87,10 +88,11 @@ public abstract class ShieldParryMixin {
                     if (!player.getWorld().isClient) {
                         if (config.stunMechanics.deflectStunEnabled && source.getAttacker() instanceof LivingEntity shooter) {
                             var stunEntry = Registries.STATUS_EFFECT.getEntry(Bettershield.STUN_EFFECT);
-                            shooter.addStatusEffect(new StatusEffectInstance(stunEntry, config.stunMechanics.stunDuration, 0, false, false, true));
-
-                            Bettershield.StunMobsPayload stunPayload = new Bettershield.StunMobsPayload(shooter.getId(), config.stunMechanics.stunDuration);
-                            player.getWorld().getPlayers().forEach(p -> ServerPlayNetworking.send((ServerPlayerEntity)p, stunPayload));
+                            if (stunEntry != null) {
+                                shooter.addStatusEffect(new StatusEffectInstance(stunEntry, config.stunMechanics.stunDuration, 0, false, false, true));
+                                Bettershield.StunMobsPayload stunPayload = new Bettershield.StunMobsPayload(shooter.getId(), config.stunMechanics.stunDuration);
+                                player.getWorld().getPlayers().forEach(p -> ServerPlayNetworking.send((ServerPlayerEntity)p, stunPayload));
+                            }
                         }
 
                         ProjectileEntity newProjectile = createReflectedProjectile(oldProjectile, player, finalDirection, config.combat.arrowReflectSpeed);
@@ -146,10 +148,11 @@ public abstract class ShieldParryMixin {
                     if (!player.getWorld().isClient) {
                         if (config.stunMechanics.parryStunEnabled) {
                             var stunEntry = Registries.STATUS_EFFECT.getEntry(Bettershield.STUN_EFFECT);
-                            attacker.addStatusEffect(new StatusEffectInstance(stunEntry, config.stunMechanics.stunDuration, 0, false, false, true));
-
-                            Bettershield.StunMobsPayload stunPayload = new Bettershield.StunMobsPayload(attacker.getId(), config.stunMechanics.stunDuration);
-                            player.getWorld().getPlayers().forEach(p -> ServerPlayNetworking.send((ServerPlayerEntity)p, stunPayload));
+                            if (stunEntry != null) {
+                                attacker.addStatusEffect(new StatusEffectInstance(stunEntry, config.stunMechanics.stunDuration, 0, false, false, true));
+                                Bettershield.StunMobsPayload stunPayload = new Bettershield.StunMobsPayload(attacker.getId(), config.stunMechanics.stunDuration);
+                                player.getWorld().getPlayers().forEach(p -> ServerPlayNetworking.send((ServerPlayerEntity)p, stunPayload));
+                            }
                         }
 
                         if (player.getWorld() instanceof ServerWorld serverWorldSpark) {

@@ -66,7 +66,6 @@ public class BettershieldClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		HudRenderCallback.EVENT.register(new ShieldHudOverlay());
-		EntityRendererRegistry.register(Bettershield.THROWN_SHIELD_ENTITY_TYPE, ThrownShieldEntityRenderer::new);
 
 		ParticleFactoryRegistry.getInstance().register(Bettershield.SPARK_PARTICLE, SparkParticle.Factory::new);
 		ParticleFactoryRegistry.getInstance().register(Bettershield.CLOUD_PARTICLE, CloudParticle.Factory::new);
