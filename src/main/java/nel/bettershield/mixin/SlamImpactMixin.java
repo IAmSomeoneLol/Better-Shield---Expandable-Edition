@@ -3,6 +3,7 @@ package nel.bettershield.mixin;
 import nel.bettershield.BetterShieldConfig;
 import nel.bettershield.Bettershield;
 import nel.bettershield.registry.BetterShieldCriteria;
+import nel.bettershield.registry.BetterShieldEnchantments;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.block.BlockRenderType;
 import net.minecraft.block.BlockState;
@@ -16,6 +17,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ShieldItem;
 import net.minecraft.registry.Registries;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
@@ -54,7 +56,9 @@ public abstract class SlamImpactMixin {
                 stack = player.getStackInHand(Hand.OFF_HAND);
             }
 
-            int levelFoam = EnchantmentHelper.getLevel(BetterShieldEnchantments.SLAM_FOAM, stack);
+            var enchantmentRegistry = player.getWorld().getRegistryManager().getWrapperOrThrow(RegistryKeys.ENCHANTMENT);
+
+            int levelFoam = EnchantmentHelper.getLevel(enchantmentRegistry.getOrThrow(BetterShieldEnchantments.SLAM_FOAM), stack);
             if (levelFoam > 0) {
                 float reduction = levelFoam * 0.25f;
                 player.fallDistance = player.fallDistance * (1.0f - reduction);
@@ -90,13 +94,12 @@ public abstract class SlamImpactMixin {
                 state = Blocks.COBBLESTONE.getDefaultState();
             }
 
-            // --- 1.20.5 FIX: Slam Effect Payload ---
             Bettershield.SlamEffectPayload slamPayload = new Bettershield.SlamEffectPayload(
                     player.getX(), player.getY(), player.getZ(), Registries.BLOCK.getId(state.getBlock()).toString()
             );
             world.getPlayers().forEach(p -> ServerPlayNetworking.send((ServerPlayerEntity)p, slamPayload));
 
-            int levelDensity = EnchantmentHelper.getLevel(BetterShieldEnchantments.SHIELD_DENSITY, stack);
+            int levelDensity = EnchantmentHelper.getLevel(enchantmentRegistry.getOrThrow(BetterShieldEnchantments.SHIELD_DENSITY), stack);
             float damageMultiplierEnchant = 1.0f + (levelDensity * 0.10f);
 
             double distanceFallen = startY - player.getY();
@@ -120,7 +123,6 @@ public abstract class SlamImpactMixin {
                     living.velocityModified = true;
 
                     if (config.stunMechanics.slamStunEnabled) {
-                        // --- 1.20.5 FIX: Stun Payload & RegistryEntry ---
                         var stunEntry = Registries.STATUS_EFFECT.getEntry(Bettershield.STUN_EFFECT);
                         living.addStatusEffect(new StatusEffectInstance(stunEntry, config.stunMechanics.stunDuration, 0, false, false, true));
 

@@ -3,6 +3,7 @@ package nel.bettershield.mixin;
 import nel.bettershield.BetterShieldConfig;
 import nel.bettershield.Bettershield;
 import nel.bettershield.registry.BetterShieldCriteria;
+import nel.bettershield.registry.BetterShieldEnchantments;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.LivingEntity;
@@ -13,6 +14,7 @@ import net.minecraft.entity.projectile.*;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ShieldItem;
 import net.minecraft.registry.Registries;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
@@ -40,10 +42,11 @@ public abstract class ShieldParryMixin {
         if (user instanceof PlayerEntity player && this.isBlocking()) {
 
             ItemStack activeShield = this.getActiveItem();
-
             if (activeShield.isEmpty()) activeShield = player.getMainHandStack();
 
-            int levelParryful = EnchantmentHelper.getLevel(BetterShieldEnchantments.PARRYFUL, activeShield);
+            var enchantmentRegistry = player.getWorld().getRegistryManager().getWrapperOrThrow(RegistryKeys.ENCHANTMENT);
+
+            int levelParryful = EnchantmentHelper.getLevel(enchantmentRegistry.getOrThrow(BetterShieldEnchantments.PARRYFUL), activeShield);
             int parryWindow = config.combat.parryWindow + (levelParryful * 4);
 
             if (this.getItemUseTime() <= parryWindow) {
@@ -54,7 +57,7 @@ public abstract class ShieldParryMixin {
                     BetterShieldCriteria.PARRY.trigger(serverPlayer);
                 }
 
-                int levelDoctrine = EnchantmentHelper.getLevel(BetterShieldEnchantments.PARRY_DOCTRINE, activeShield);
+                int levelDoctrine = EnchantmentHelper.getLevel(enchantmentRegistry.getOrThrow(BetterShieldEnchantments.PARRY_DOCTRINE), activeShield);
                 if (levelDoctrine > 0) {
                     int damage = activeShield.getDamage();
                     int maxDamage = activeShield.getMaxDamage();
@@ -62,7 +65,7 @@ public abstract class ShieldParryMixin {
                     activeShield.setDamage(Math.max(0, damage - repairAmount));
                 }
 
-                int levelMasterine = EnchantmentHelper.getLevel(BetterShieldEnchantments.MASTERINE, activeShield);
+                int levelMasterine = EnchantmentHelper.getLevel(enchantmentRegistry.getOrThrow(BetterShieldEnchantments.MASTERINE), activeShield);
 
                 // --- PROJECTILE PARRY ---
                 if (source.getSource() instanceof ProjectileEntity oldProjectile &&
@@ -92,7 +95,7 @@ public abstract class ShieldParryMixin {
                         if (newProjectile != null) {
                             newProjectile.addCommandTag("bettershield_reflected");
 
-                            int levelDeflector = EnchantmentHelper.getLevel(BetterShieldEnchantments.DEFLECTOR, activeShield);
+                            int levelDeflector = EnchantmentHelper.getLevel(enchantmentRegistry.getOrThrow(BetterShieldEnchantments.DEFLECTOR), activeShield);
                             if (newProjectile instanceof PersistentProjectileEntity arrow) {
                                 if (levelDeflector > 0) {
                                     double oldDmg = arrow.getDamage();
@@ -172,16 +175,15 @@ public abstract class ShieldParryMixin {
         ProjectileEntity result = null;
         double spawnOffset = 0.5;
 
-        // --- 1.20.5 FIX: Using the strict 3-argument constructor! ---
         if (old instanceof ArrowEntity oldArrow) {
-            ArrowEntity newArrow = new ArrowEntity(world, owner, oldArrow.getItemStack().copy());
+            ArrowEntity newArrow = new ArrowEntity(world, owner, oldArrow.getItemStack().copy(), oldArrow.getItemStack().copy());
             newArrow.setDamage(oldArrow.getDamage());
             newArrow.setCritical(oldArrow.isCritical());
             if (oldArrow.isOnFire()) newArrow.setOnFireFor(100);
             result = newArrow;
         }
         else if (old instanceof SpectralArrowEntity oldSpectral) {
-            SpectralArrowEntity newSpectral = new SpectralArrowEntity(world, owner, oldSpectral.getItemStack().copy());
+            SpectralArrowEntity newSpectral = new SpectralArrowEntity(world, owner, oldSpectral.getItemStack().copy(), oldSpectral.getItemStack().copy());
             newSpectral.setDamage(oldSpectral.getDamage());
             newSpectral.setCritical(oldSpectral.isCritical());
             if (oldSpectral.isOnFire()) newSpectral.setOnFireFor(100);

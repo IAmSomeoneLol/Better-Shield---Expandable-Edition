@@ -7,8 +7,6 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.util.Identifier;
 
 public class BetterShieldEnchantments {
-
-    // --- 1.21 FIX: We now just create "Keys" that point to your future JSON files! ---
     public static final RegistryKey<Enchantment> SHIELD_DENSITY = of("shield_density");
     public static final RegistryKey<Enchantment> PARRYFUL = of("parryful");
     public static final RegistryKey<Enchantment> DEFLECTOR = of("deflector");
@@ -18,7 +16,6 @@ public class BetterShieldEnchantments {
     public static final RegistryKey<Enchantment> ACTIVE_ARMOR = of("active_armor");
 
     private static RegistryKey<Enchantment> of(String name) {
-        // In 1.21, Mojang changed "new Identifier()" to "Identifier.of()"
         return RegistryKey.of(RegistryKeys.ENCHANTMENT, Identifier.of(Bettershield.MOD_ID, name));
     }
 }

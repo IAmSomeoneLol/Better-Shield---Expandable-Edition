@@ -5,7 +5,8 @@ import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.ShieldItem; // Import ShieldItem Class
+import net.minecraft.item.ShieldItem;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -26,24 +27,19 @@ public abstract class SwiftSneakMixin {
             return input;
         }
 
-        // FIX: Check "instanceof ShieldItem" instead of "isOf(Items.SHIELD)"
-        // This ensures it works for Diamond Shield, Netherite Shield, and Vanilla Shield.
         if (this.isBlocking() && this.getActiveItem().getItem() instanceof ShieldItem) {
 
-            int level = EnchantmentHelper.getEquipmentLevel(Enchantments.SWIFT_SNEAK, player);
+            // 1.21 FIX: Use the DynamicRegistry to check for Swift Sneak on the Leggings slot
+            var registry = player.getWorld().getRegistryManager().getWrapperOrThrow(RegistryKeys.ENCHANTMENT);
+            int level = EnchantmentHelper.getLevel(registry.getOrThrow(Enchantments.SWIFT_SNEAK), player.getEquippedStack(net.minecraft.entity.EquipmentSlot.LEGS));
 
             if (level > 0) {
-                // Vanilla Blocking Speed = 0.2
-                // +0.18 per level
                 double baseSpeed = 0.2;
                 double targetSpeed = baseSpeed + (level * 0.18);
-
                 double multiplier = targetSpeed / baseSpeed;
-
                 return input.multiply(multiplier, 1.0, multiplier);
             }
         }
-
         return input;
     }
 }

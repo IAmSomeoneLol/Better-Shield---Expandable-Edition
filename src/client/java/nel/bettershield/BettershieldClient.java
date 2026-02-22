@@ -43,7 +43,8 @@ import java.util.UUID;
 
 public class BettershieldClient implements ClientModInitializer {
 
-	private static final Identifier STAR_TEXTURE = new Identifier("bettershield", "textures/particle/stun_star.png");
+	// 1.21 FIX: Identifier.of()
+	private static final Identifier STAR_TEXTURE = Identifier.of("bettershield", "textures/particle/stun_star.png");
 	private static final HashMap<Integer, Long> STUNNED_ENTITIES = new HashMap<>();
 
 	private static final HashMap<Integer, Integer> BASH_TRAILS = new HashMap<>();
@@ -74,13 +75,14 @@ public class BettershieldClient implements ClientModInitializer {
 		registerShieldModel(BetterShieldItems.DIAMOND_SHIELD);
 		registerShieldModel(BetterShieldItems.NETHERITE_SHIELD);
 
-		ModelPredicateProviderRegistry.register(Items.SHIELD, new Identifier("bettershield", "throwing"),
+		// 1.21 FIX: Identifier.of()
+		ModelPredicateProviderRegistry.register(Items.SHIELD, Identifier.of("bettershield", "throwing"),
 				(stack, world, entity, seed) -> {
 					if (entity == null || !isChargingThrow) return 0.0F;
 					return (entity.getMainHandStack() == stack || entity.getOffHandStack() == stack) ? 1.0F : 0.0F;
 				});
 
-		ModelPredicateProviderRegistry.register(Items.SHIELD, new Identifier("bettershield", "pull"),
+		ModelPredicateProviderRegistry.register(Items.SHIELD, Identifier.of("bettershield", "pull"),
 				(stack, world, entity, seed) -> {
 					if (entity == null || !isChargingThrow) return 0.0F;
 					return (float) chargeTicks / 20.0F;
@@ -117,7 +119,8 @@ public class BettershieldClient implements ClientModInitializer {
 			String blockId = payload.blockId();
 			context.client().execute(() -> {
 				if (context.client().world != null) {
-					ItemStack debrisStack = new ItemStack(Registries.ITEM.get(new Identifier(blockId)));
+					// 1.21 FIX: Identifier.of()
+					ItemStack debrisStack = new ItemStack(Registries.ITEM.get(Identifier.of(blockId)));
 					if (debrisStack.isEmpty()) debrisStack = new ItemStack(Items.COBBLESTONE);
 					for (int i = 0; i < 600; i++) {
 						double r = 0.5 + (random.nextDouble() * 1.5);
@@ -148,7 +151,6 @@ public class BettershieldClient implements ClientModInitializer {
 			Iterator<Map.Entry<Integer, Long>> iterator = STUNNED_ENTITIES.entrySet().iterator();
 			while (iterator.hasNext()) { if (now > iterator.next().getValue()) iterator.remove(); }
 
-			// --- 1.20.5 FIX: Wrapping the STUN_EFFECT into a RegistryEntry ---
 			var stunEntry = Registries.STATUS_EFFECT.getEntry(Bettershield.STUN_EFFECT);
 
 			for (Entity entity : client.world.getEntities()) {
@@ -234,16 +236,17 @@ public class BettershieldClient implements ClientModInitializer {
 	}
 
 	private void registerShieldModel(Item item) {
-		ModelPredicateProviderRegistry.register(item, new Identifier("blocking"),
+		// 1.21 FIX: Identifier.of()
+		ModelPredicateProviderRegistry.register(item, Identifier.of("blocking"),
 				(stack, world, entity, seed) -> entity != null && entity.isUsingItem() && entity.getActiveItem() == stack ? 1.0F : 0.0F);
 
-		ModelPredicateProviderRegistry.register(item, new Identifier("bettershield", "throwing"),
+		ModelPredicateProviderRegistry.register(item, Identifier.of("bettershield", "throwing"),
 				(stack, world, entity, seed) -> {
 					if (entity == null || !isChargingThrow) return 0.0F;
 					return (entity.getMainHandStack() == stack || entity.getOffHandStack() == stack) ? 1.0F : 0.0F;
 				});
 
-		ModelPredicateProviderRegistry.register(item, new Identifier("bettershield", "pull"),
+		ModelPredicateProviderRegistry.register(item, Identifier.of("bettershield", "pull"),
 				(stack, world, entity, seed) -> {
 					if (entity == null || !isChargingThrow) return 0.0F;
 					return (float) chargeTicks / 20.0F;
@@ -256,16 +259,22 @@ public class BettershieldClient implements ClientModInitializer {
 		MatrixStack matrices = context.matrixStack();
 		Vec3d cameraPos = context.camera().getPos();
 		VertexConsumerProvider consumers = context.consumers();
-		double x = net.minecraft.util.math.MathHelper.lerp(context.tickDelta(), entity.prevX, entity.getX());
-		double y = net.minecraft.util.math.MathHelper.lerp(context.tickDelta(), entity.prevY, entity.getY());
-		double z = net.minecraft.util.math.MathHelper.lerp(context.tickDelta(), entity.prevZ, entity.getZ());
+
+		// 1.21 FIX: tickCounter().getTickDelta(true)
+		float tickDelta = context.tickCounter().getTickDelta(true);
+
+		double x = net.minecraft.util.math.MathHelper.lerp(tickDelta, entity.prevX, entity.getX());
+		double y = net.minecraft.util.math.MathHelper.lerp(tickDelta, entity.prevY, entity.getY());
+		double z = net.minecraft.util.math.MathHelper.lerp(tickDelta, entity.prevZ, entity.getZ());
 		double height = entity.getEyeHeight(entity.getPose()) + 0.5;
-		float time = entity.age + context.tickDelta();
+		float time = entity.age + tickDelta;
+
 		int starCount = 3;
 		double radius = 0.65;
 		double speed = 0.3;
 		VertexConsumer buffer = consumers.getBuffer(RenderLayer.getEntityTranslucent(STAR_TEXTURE));
 		Quaternionf cameraRot = context.camera().getRotation();
+
 		matrices.push();
 		matrices.translate(x - cameraPos.x, (y - cameraPos.y) + height, z - cameraPos.z);
 		for (int i = 0; i < starCount; i++) {
@@ -284,10 +293,10 @@ public class BettershieldClient implements ClientModInitializer {
 	private void drawQuad(MatrixStack matrices, VertexConsumer buffer, float size) {
 		MatrixStack.Entry entry = matrices.peek();
 		int light = 15728880;
-		// --- 1.20.5 FIX: Using `entry` directly in the `.normal()` call ---
-		buffer.vertex(entry.getPositionMatrix(), -size, -size, 0).color(255, 255, 255, 255).texture(0, 1).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(entry, 0.0F, 1.0F, 0.0F).next();
-		buffer.vertex(entry.getPositionMatrix(), size, -size, 0).color(255, 255, 255, 255).texture(1, 1).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(entry, 0.0F, 1.0F, 0.0F).next();
-		buffer.vertex(entry.getPositionMatrix(), size, size, 0).color(255, 255, 255, 255).texture(1, 0).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(entry, 0.0F, 1.0F, 0.0F).next();
-		buffer.vertex(entry.getPositionMatrix(), -size, size, 0).color(255, 255, 255, 255).texture(0, 0).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(entry, 0.0F, 1.0F, 0.0F).next();
+		// 1.21 FIX: Use direct method chaining, Mojang removed .next() from vertex pipeline
+		buffer.vertex(entry, -size, -size, 0).color(255, 255, 255, 255).texture(0, 1).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(entry, 0.0F, 1.0F, 0.0F);
+		buffer.vertex(entry, size, -size, 0).color(255, 255, 255, 255).texture(1, 1).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(entry, 0.0F, 1.0F, 0.0F);
+		buffer.vertex(entry, size, size, 0).color(255, 255, 255, 255).texture(1, 0).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(entry, 0.0F, 1.0F, 0.0F);
+		buffer.vertex(entry, -size, size, 0).color(255, 255, 255, 255).texture(0, 0).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(entry, 0.0F, 1.0F, 0.0F);
 	}
 }

@@ -3,7 +3,6 @@ package nel.bettershield.recipe;
 import nel.bettershield.registry.BetterShieldItems;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.BannerPatternsComponent;
-import net.minecraft.inventory.RecipeInputInventory;
 import net.minecraft.item.BannerItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.recipe.RecipeSerializer;
@@ -11,6 +10,7 @@ import net.minecraft.recipe.SpecialCraftingRecipe;
 import net.minecraft.recipe.book.CraftingRecipeCategory;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.world.World;
+import net.minecraft.recipe.input.CraftingRecipeInput;
 
 public class BetterShieldDecorationRecipe extends SpecialCraftingRecipe {
 
@@ -18,13 +18,14 @@ public class BetterShieldDecorationRecipe extends SpecialCraftingRecipe {
         super(category);
     }
 
-    public boolean matches(RecipeInputInventory input, World world) {
+    @Override
+    public boolean matches(CraftingRecipeInput input, World world) {
         ItemStack shieldStack = ItemStack.EMPTY;
         ItemStack bannerStack = ItemStack.EMPTY;
 
-        // --- 1.20.5 FIX: getSize() changed to size() ---
-        for (int i = 0; i < input.size(); ++i) {
-            ItemStack stack = input.getStack(i);
+        // 1.21 FIX: Use getStackCount() and getStackInSlot()
+        for (int i = 0; i < input.getStackCount(); ++i) {
+            ItemStack stack = input.getStackInSlot(i);
             if (stack.isEmpty()) continue;
 
             if (stack.getItem() instanceof BannerItem) {
@@ -41,13 +42,14 @@ public class BetterShieldDecorationRecipe extends SpecialCraftingRecipe {
         return !shieldStack.isEmpty() && !bannerStack.isEmpty();
     }
 
-    public ItemStack craft(RecipeInputInventory input, RegistryWrapper.WrapperLookup lookup) {
+    @Override
+    public ItemStack craft(CraftingRecipeInput input, RegistryWrapper.WrapperLookup lookup) {
         ItemStack shieldStack = ItemStack.EMPTY;
         ItemStack bannerStack = ItemStack.EMPTY;
 
-        // --- 1.20.5 FIX: getSize() changed to size() ---
-        for (int i = 0; i < input.size(); ++i) {
-            ItemStack stack = input.getStack(i);
+        // 1.21 FIX: Use getStackCount() and getStackInSlot()
+        for (int i = 0; i < input.getStackCount(); ++i) {
+            ItemStack stack = input.getStackInSlot(i);
             if (stack.isEmpty()) continue;
 
             if (stack.getItem() instanceof BannerItem) {

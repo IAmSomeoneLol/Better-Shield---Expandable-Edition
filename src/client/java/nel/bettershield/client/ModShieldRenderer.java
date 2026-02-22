@@ -15,8 +15,8 @@ import net.minecraft.client.render.item.ItemRenderer;
 import net.minecraft.client.render.model.json.ModelTransformationMode;
 import net.minecraft.client.util.SpriteIdentifier;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.component.DataComponentTypes; // --- NEW 1.20.5 COMPONENT ---
-import net.minecraft.component.type.BannerPatternsComponent; // --- NEW 1.20.5 COMPONENT ---
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.BannerPatternsComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.DyeColor;
 import net.minecraft.util.Identifier;
@@ -25,18 +25,18 @@ import net.minecraft.util.Identifier;
 public class ModShieldRenderer implements BuiltinItemRendererRegistry.DynamicItemRenderer {
     private ShieldEntityModel model;
 
+    // 1.21 FIX: Identifier.of()
     private static final SpriteIdentifier DIAMOND_SHIELD_BASE = new SpriteIdentifier(
-            TexturedRenderLayers.SHIELD_PATTERNS_ATLAS_TEXTURE, new Identifier("bettershield", "entity/diamond_shield_base"));
+            TexturedRenderLayers.SHIELD_PATTERNS_ATLAS_TEXTURE, Identifier.of("bettershield", "entity/diamond_shield_base"));
     private static final SpriteIdentifier DIAMOND_SHIELD_NO_PATTERN = new SpriteIdentifier(
-            TexturedRenderLayers.SHIELD_PATTERNS_ATLAS_TEXTURE, new Identifier("bettershield", "entity/diamond_shield_base_nopattern"));
+            TexturedRenderLayers.SHIELD_PATTERNS_ATLAS_TEXTURE, Identifier.of("bettershield", "entity/diamond_shield_base_nopattern"));
 
     private static final SpriteIdentifier NETHERITE_SHIELD_BASE = new SpriteIdentifier(
-            TexturedRenderLayers.SHIELD_PATTERNS_ATLAS_TEXTURE, new Identifier("bettershield", "entity/netherite_shield_base"));
+            TexturedRenderLayers.SHIELD_PATTERNS_ATLAS_TEXTURE, Identifier.of("bettershield", "entity/netherite_shield_base"));
     private static final SpriteIdentifier NETHERITE_SHIELD_NO_PATTERN = new SpriteIdentifier(
-            TexturedRenderLayers.SHIELD_PATTERNS_ATLAS_TEXTURE, new Identifier("bettershield", "entity/netherite_shield_base_nopattern"));
+            TexturedRenderLayers.SHIELD_PATTERNS_ATLAS_TEXTURE, Identifier.of("bettershield", "entity/netherite_shield_base_nopattern"));
 
-    public ModShieldRenderer() {
-    }
+    public ModShieldRenderer() {}
 
     private void initModel() {
         if (this.model == null) {
@@ -49,8 +49,6 @@ public class ModShieldRenderer implements BuiltinItemRendererRegistry.DynamicIte
         initModel();
 
         boolean isNetherite = stack.isOf(BetterShieldItems.NETHERITE_SHIELD);
-
-        // --- 1.20.5 FIX: Checking for Base Color component instead of NBT ---
         boolean hasBanner = stack.contains(DataComponentTypes.BASE_COLOR);
 
         matrices.push();
@@ -67,10 +65,10 @@ public class ModShieldRenderer implements BuiltinItemRendererRegistry.DynamicIte
                 ItemRenderer.getDirectItemGlintConsumer(
                         vertexConsumers, this.model.getLayer(spriteId.getAtlasId()), true, stack.hasGlint()));
 
-        this.model.getHandle().render(matrices, vertexConsumer, light, overlay, 1.0F, 1.0F, 1.0F, 1.0F);
+        // 1.21 FIX: Removed the 1.0F color multipliers at the end of the render call
+        this.model.getHandle().render(matrices, vertexConsumer, light, overlay);
 
         if (hasBanner) {
-            // --- 1.20.5 FIX: Component Magic instead of decoding NBT lists ---
             DyeColor baseColor = stack.get(DataComponentTypes.BASE_COLOR);
             BannerPatternsComponent patterns = stack.getOrDefault(DataComponentTypes.BANNER_PATTERNS, BannerPatternsComponent.DEFAULT);
 
@@ -79,7 +77,8 @@ public class ModShieldRenderer implements BuiltinItemRendererRegistry.DynamicIte
                     baseColor != null ? baseColor : DyeColor.WHITE, patterns, stack.hasGlint()
             );
         } else {
-            this.model.getPlate().render(matrices, vertexConsumer, light, overlay, 1.0F, 1.0F, 1.0F, 1.0F);
+            // 1.21 FIX: Removed the 1.0F color multipliers
+            this.model.getPlate().render(matrices, vertexConsumer, light, overlay);
         }
 
         matrices.pop();

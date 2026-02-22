@@ -3,6 +3,7 @@ package nel.bettershield.mixin;
 import nel.bettershield.BetterShieldConfig;
 import nel.bettershield.Bettershield;
 import nel.bettershield.registry.BetterShieldCriteria;
+import nel.bettershield.registry.BetterShieldEnchantments;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.LivingEntity;
@@ -12,6 +13,7 @@ import net.minecraft.entity.projectile.*;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.Registries;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
@@ -42,7 +44,9 @@ public abstract class ExplosiveParryMixin {
 
                 if (activeShield.isEmpty()) activeShield = player.getMainHandStack();
 
-                int levelParryful = EnchantmentHelper.getLevel(BetterShieldEnchantments.PARRYFUL, activeShield);
+                var enchantmentRegistry = player.getWorld().getRegistryManager().getWrapperOrThrow(RegistryKeys.ENCHANTMENT);
+
+                int levelParryful = EnchantmentHelper.getLevel(enchantmentRegistry.getOrThrow(BetterShieldEnchantments.PARRYFUL), activeShield);
                 int parryWindow = config.combat.parryWindow + (levelParryful * 4);
 
                 if (player.getItemUseTime() <= parryWindow) {
@@ -55,7 +59,7 @@ public abstract class ExplosiveParryMixin {
                         BetterShieldCriteria.PARRY.trigger(serverPlayer);
                     }
 
-                    int levelDoctrine = EnchantmentHelper.getLevel(BetterShieldEnchantments.PARRY_DOCTRINE, activeShield);
+                    int levelDoctrine = EnchantmentHelper.getLevel(enchantmentRegistry.getOrThrow(BetterShieldEnchantments.PARRY_DOCTRINE), activeShield);
                     if (levelDoctrine > 0) {
                         int dmg = activeShield.getDamage();
                         int repair = (int) (activeShield.getMaxDamage() * (0.03f * levelDoctrine));
@@ -84,13 +88,13 @@ public abstract class ExplosiveParryMixin {
                             power = 1;
                         }
 
-                        newProj = new FireballEntity(player.getWorld(), player, dir.x, dir.y, dir.z, power);
+                        newProj = new FireballEntity(player.getWorld(), player, dir.normalize(), power);
                     }
                     else if (self instanceof SmallFireballEntity) {
-                        newProj = new SmallFireballEntity(player.getWorld(), player, dir.x, dir.y, dir.z);
+                        newProj = new SmallFireballEntity(player.getWorld(), player, dir.normalize());
                     }
                     else if (self instanceof WitherSkullEntity oldSkull) {
-                        WitherSkullEntity newSkull = new WitherSkullEntity(player.getWorld(), player, dir.x, dir.y, dir.z);
+                        WitherSkullEntity newSkull = new WitherSkullEntity(player.getWorld(), player, dir.normalize());
                         if (oldSkull.isCharged()) newSkull.setCharged(true);
                         newProj = newSkull;
                     }
@@ -107,7 +111,7 @@ public abstract class ExplosiveParryMixin {
                                 15, 0.4, 0.4, 0.4, 0.2);
                     }
 
-                    int levelMasterine = EnchantmentHelper.getLevel(BetterShieldEnchantments.MASTERINE, activeShield);
+                    int levelMasterine = EnchantmentHelper.getLevel(enchantmentRegistry.getOrThrow(BetterShieldEnchantments.MASTERINE), activeShield);
                     int baseCd = config.cooldowns.parryProjectileCooldown;
                     int finalCd = (int) (baseCd * (1.0f - (levelMasterine * 0.2f)));
 
@@ -115,7 +119,6 @@ public abstract class ExplosiveParryMixin {
                     Bettershield.setParryDebounce(player);
                     player.getItemCooldownManager().set(activeShield.getItem(), 0);
 
-                    // --- 1.20.5 FIX: Simplify item damage callback ---
                     activeShield.damage(1, player, player.getActiveHand() == Hand.MAIN_HAND ? net.minecraft.entity.EquipmentSlot.MAINHAND : net.minecraft.entity.EquipmentSlot.OFFHAND);
                     player.getWorld().playSound(null, player.getBlockPos(), SoundEvents.ITEM_FIRECHARGE_USE, SoundCategory.PLAYERS, 1.0f, 1.5f);
 
