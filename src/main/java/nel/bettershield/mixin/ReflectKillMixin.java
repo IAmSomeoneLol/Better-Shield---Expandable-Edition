@@ -15,11 +15,9 @@ public class ReflectKillMixin {
     @Inject(method = "onDeath", at = @At("HEAD"))
     private void onDeath(DamageSource source, CallbackInfo ci) {
         if (source.getSource() != null) {
-            // FIX: use getCommandTags
             if (source.getSource().getCommandTags().contains("bettershield_reflected")) {
-
                 if (source.getAttacker() instanceof ServerPlayerEntity player) {
-                    BetterShieldCriteria.REFLECT_KILL.trigger(player);
+                    BetterShieldCriteria.grantAdvancement(player, "deflector");
                 }
             }
         }

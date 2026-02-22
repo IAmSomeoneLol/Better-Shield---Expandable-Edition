@@ -1,0 +1,18 @@
+{
+  "parent": "bettershield:bettershield/throw_joke",
+  "display": {
+    "icon": {
+      "id": "minecraft:shield",
+      "components": { "minecraft:enchantments": { "levels": { "minecraft:loyalty": 3, "minecraft:piercing": 4 } } }
+    },
+    "title": { "text": "CAPTAIN AMERICA" },
+    "description": { "text": "Throw a Shield with \"Loyalty\" and \"Piercing\" and hit 3 Enemies in one return." },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "unlock": { "trigger": "minecraft:impossible" }
+  }
+}

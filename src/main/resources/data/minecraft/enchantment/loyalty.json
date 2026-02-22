@@ -1,0 +1,23 @@
+{
+  "description": {
+    "translate": "enchantment.minecraft.loyalty"
+  },
+  "exclusive_set": "#minecraft:exclusive_set/loyalty",
+  "supported_items": "#bettershield:loyalty_items",
+  "primary_items": "#bettershield:loyalty_items",
+  "weight": 5,
+  "max_level": 3,
+  "min_cost": {
+    "base": 12,
+    "per_level_above_first": 7
+  },
+  "max_cost": {
+    "base": 50,
+    "per_level_above_first": 0
+  },
+  "anvil_cost": 2,
+  "slots": [
+    "mainhand",
+    "offhand"
+  ]
+}

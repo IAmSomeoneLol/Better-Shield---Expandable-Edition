@@ -46,7 +46,8 @@ public abstract class ShieldParryMixin {
 
             var enchantmentRegistry = player.getWorld().getRegistryManager().getWrapperOrThrow(RegistryKeys.ENCHANTMENT);
 
-            int levelParryful = EnchantmentHelper.getLevel(enchantmentRegistry.getOrThrow(BetterShieldEnchantments.PARRYFUL), activeShield);
+            var parryfulEntry = enchantmentRegistry.getOptional(BetterShieldEnchantments.PARRYFUL);
+            int levelParryful = parryfulEntry.isPresent() ? EnchantmentHelper.getLevel(parryfulEntry.get(), activeShield) : 0;
             int parryWindow = config.combat.parryWindow + (levelParryful * 4);
 
             if (this.getItemUseTime() <= parryWindow) {
@@ -54,10 +55,11 @@ public abstract class ShieldParryMixin {
                 if (Bettershield.isParryDebounced(player)) return;
 
                 if (!player.getWorld().isClient && player instanceof ServerPlayerEntity serverPlayer) {
-                    BetterShieldCriteria.PARRY.trigger(serverPlayer);
+                    BetterShieldCriteria.grantAdvancement(serverPlayer, "parry");
                 }
 
-                int levelDoctrine = EnchantmentHelper.getLevel(enchantmentRegistry.getOrThrow(BetterShieldEnchantments.PARRY_DOCTRINE), activeShield);
+                var doctrineEntry = enchantmentRegistry.getOptional(BetterShieldEnchantments.PARRY_DOCTRINE);
+                int levelDoctrine = doctrineEntry.isPresent() ? EnchantmentHelper.getLevel(doctrineEntry.get(), activeShield) : 0;
                 if (levelDoctrine > 0) {
                     int damage = activeShield.getDamage();
                     int maxDamage = activeShield.getMaxDamage();
@@ -65,7 +67,8 @@ public abstract class ShieldParryMixin {
                     activeShield.setDamage(Math.max(0, damage - repairAmount));
                 }
 
-                int levelMasterine = EnchantmentHelper.getLevel(enchantmentRegistry.getOrThrow(BetterShieldEnchantments.MASTERINE), activeShield);
+                var masterineEntry = enchantmentRegistry.getOptional(BetterShieldEnchantments.MASTERINE);
+                int levelMasterine = masterineEntry.isPresent() ? EnchantmentHelper.getLevel(masterineEntry.get(), activeShield) : 0;
 
                 // --- PROJECTILE PARRY ---
                 if (source.getSource() instanceof ProjectileEntity oldProjectile &&
@@ -95,7 +98,9 @@ public abstract class ShieldParryMixin {
                         if (newProjectile != null) {
                             newProjectile.addCommandTag("bettershield_reflected");
 
-                            int levelDeflector = EnchantmentHelper.getLevel(enchantmentRegistry.getOrThrow(BetterShieldEnchantments.DEFLECTOR), activeShield);
+                            var deflectorEntry = enchantmentRegistry.getOptional(BetterShieldEnchantments.DEFLECTOR);
+                            int levelDeflector = deflectorEntry.isPresent() ? EnchantmentHelper.getLevel(deflectorEntry.get(), activeShield) : 0;
+
                             if (newProjectile instanceof PersistentProjectileEntity arrow) {
                                 if (levelDeflector > 0) {
                                     double oldDmg = arrow.getDamage();

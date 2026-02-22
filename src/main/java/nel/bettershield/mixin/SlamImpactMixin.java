@@ -58,7 +58,8 @@ public abstract class SlamImpactMixin {
 
             var enchantmentRegistry = player.getWorld().getRegistryManager().getWrapperOrThrow(RegistryKeys.ENCHANTMENT);
 
-            int levelFoam = EnchantmentHelper.getLevel(enchantmentRegistry.getOrThrow(BetterShieldEnchantments.SLAM_FOAM), stack);
+            var foamEntry = enchantmentRegistry.getOptional(BetterShieldEnchantments.SLAM_FOAM);
+            int levelFoam = foamEntry.isPresent() ? EnchantmentHelper.getLevel(foamEntry.get(), stack) : 0;
             if (levelFoam > 0) {
                 float reduction = levelFoam * 0.25f;
                 player.fallDistance = player.fallDistance * (1.0f - reduction);
@@ -99,7 +100,8 @@ public abstract class SlamImpactMixin {
             );
             world.getPlayers().forEach(p -> ServerPlayNetworking.send((ServerPlayerEntity)p, slamPayload));
 
-            int levelDensity = EnchantmentHelper.getLevel(enchantmentRegistry.getOrThrow(BetterShieldEnchantments.SHIELD_DENSITY), stack);
+            var densityEntry = enchantmentRegistry.getOptional(BetterShieldEnchantments.SHIELD_DENSITY);
+            int levelDensity = densityEntry.isPresent() ? EnchantmentHelper.getLevel(densityEntry.get(), stack) : 0;
             float damageMultiplierEnchant = 1.0f + (levelDensity * 0.10f);
 
             double distanceFallen = startY - player.getY();
@@ -134,7 +136,7 @@ public abstract class SlamImpactMixin {
             }
 
             if (entitiesHit >= 5 && player instanceof ServerPlayerEntity serverPlayer) {
-                BetterShieldCriteria.SLAM_MULTI.trigger(serverPlayer);
+                BetterShieldCriteria.grantAdvancement(serverPlayer, "john_cena");
             }
 
             world.playSound(null, player.getBlockPos(), SoundEvents.BLOCK_ANVIL_LAND, SoundCategory.PLAYERS, 1.0f, 0.5f);

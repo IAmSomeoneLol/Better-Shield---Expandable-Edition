@@ -46,7 +46,8 @@ public abstract class ExplosiveParryMixin {
 
                 var enchantmentRegistry = player.getWorld().getRegistryManager().getWrapperOrThrow(RegistryKeys.ENCHANTMENT);
 
-                int levelParryful = EnchantmentHelper.getLevel(enchantmentRegistry.getOrThrow(BetterShieldEnchantments.PARRYFUL), activeShield);
+                var parryfulEntry = enchantmentRegistry.getOptional(BetterShieldEnchantments.PARRYFUL);
+                int levelParryful = parryfulEntry.isPresent() ? EnchantmentHelper.getLevel(parryfulEntry.get(), activeShield) : 0;
                 int parryWindow = config.combat.parryWindow + (levelParryful * 4);
 
                 if (player.getItemUseTime() <= parryWindow) {
@@ -56,10 +57,11 @@ public abstract class ExplosiveParryMixin {
                     }
 
                     if (player instanceof ServerPlayerEntity serverPlayer) {
-                        BetterShieldCriteria.PARRY.trigger(serverPlayer);
+                        BetterShieldCriteria.grantAdvancement(serverPlayer, "parry");
                     }
 
-                    int levelDoctrine = EnchantmentHelper.getLevel(enchantmentRegistry.getOrThrow(BetterShieldEnchantments.PARRY_DOCTRINE), activeShield);
+                    var doctrineEntry = enchantmentRegistry.getOptional(BetterShieldEnchantments.PARRY_DOCTRINE);
+                    int levelDoctrine = doctrineEntry.isPresent() ? EnchantmentHelper.getLevel(doctrineEntry.get(), activeShield) : 0;
                     if (levelDoctrine > 0) {
                         int dmg = activeShield.getDamage();
                         int repair = (int) (activeShield.getMaxDamage() * (0.03f * levelDoctrine));
@@ -111,7 +113,8 @@ public abstract class ExplosiveParryMixin {
                                 15, 0.4, 0.4, 0.4, 0.2);
                     }
 
-                    int levelMasterine = EnchantmentHelper.getLevel(enchantmentRegistry.getOrThrow(BetterShieldEnchantments.MASTERINE), activeShield);
+                    var masterineEntry = enchantmentRegistry.getOptional(BetterShieldEnchantments.MASTERINE);
+                    int levelMasterine = masterineEntry.isPresent() ? EnchantmentHelper.getLevel(masterineEntry.get(), activeShield) : 0;
                     int baseCd = config.cooldowns.parryProjectileCooldown;
                     int finalCd = (int) (baseCd * (1.0f - (levelMasterine * 0.2f)));
 

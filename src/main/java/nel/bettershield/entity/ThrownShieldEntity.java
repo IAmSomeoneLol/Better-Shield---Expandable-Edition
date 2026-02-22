@@ -29,6 +29,9 @@ import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class ThrownShieldEntity extends PersistentProjectileEntity {
     private static final TrackedData<ItemStack> SHIELD_STACK = DataTracker.registerData(ThrownShieldEntity.class, TrackedDataHandlerRegistry.ITEM_STACK);
     private static final TrackedData<Boolean> IS_OFFHAND = DataTracker.registerData(ThrownShieldEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
@@ -38,13 +41,21 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
     private boolean stunEnabled = false;
     private int entitiesHitCount = 0;
 
+    // Memory list to prevent infinite collision loops
+    private final List<Integer> hitEntities = new ArrayList<>();
+
     public ThrownShieldEntity(EntityType<? extends PersistentProjectileEntity> entityType, World world) {
         super(entityType, world);
     }
 
     public ThrownShieldEntity(World world, LivingEntity owner, ItemStack stack) {
-        super(Bettershield.THROWN_SHIELD_ENTITY_TYPE, owner.getX(), owner.getEyeY() - 0.10000000149011612D, owner.getZ(), world, stack, stack);
+        // 1.21 MASTER FIX: We pass a BLANK shield to super()!
+        // This tricks the Vanilla physics engine into thinking this projectile has 0 piercing.
+        // It entirely disables the broken Vanilla 'while' loop that was freezing your game!
+        super(Bettershield.THROWN_SHIELD_ENTITY_TYPE, owner.getX(), owner.getEyeY() - 0.10000000149011612D, owner.getZ(), world, new ItemStack(Items.SHIELD), new ItemStack(Items.SHIELD));
+
         this.setOwner(owner);
+        // We store the REAL enchanted shield in our custom data tracker
         this.setStack(stack);
     }
 
@@ -137,6 +148,14 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
 
     private void tryCatchShield(Entity owner) {
         if (!this.getWorld().isClient && owner instanceof PlayerEntity player) {
+
+            // Fixes duplicate items if the player catches the shield in Creative mode
+            if (player.isCreative()) {
+                this.discard();
+                player.playSound(SoundEvents.ITEM_TRIDENT_RETURN, 1.0F, 1.0F);
+                return;
+            }
+
             ItemStack shield = this.getStack();
             boolean wasOffhand = this.dataTracker.get(IS_OFFHAND);
 
@@ -168,16 +187,57 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
     }
 
     @Override
+    protected void onCollision(HitResult hitResult) {
+        HitResult.Type type = hitResult.getType();
+
+        if (type == HitResult.Type.ENTITY) {
+            this.onEntityHit((EntityHitResult) hitResult);
+        } else if (type == HitResult.Type.BLOCK) {
+            this.returning = true;
+            this.setVelocity(this.getVelocity().multiply(-0.1));
+        }
+    }
+
+    @Override
     protected void onEntityHit(EntityHitResult entityHitResult) {
         if (this.age < 3 && entityHitResult.getEntity() == this.getOwner()) return;
         if (this.returning) return;
 
         Entity target = entityHitResult.getEntity();
+
+        // 1.21 FIX: Both Client and Server successfully register the hit now!
+        if (this.hitEntities.contains(target.getId())) return;
+        this.hitEntities.add(target.getId());
+
+        int piercingLevel = 0;
+        var enchantmentRegistry = this.getWorld().getRegistryManager().getWrapperOrThrow(RegistryKeys.ENCHANTMENT);
+        var piercingEntry = enchantmentRegistry.getOptional(Enchantments.PIERCING);
+        if (piercingEntry.isPresent()) {
+            piercingLevel = EnchantmentHelper.getLevel(piercingEntry.get(), this.getStack());
+        }
+
+        this.entitiesHitCount++;
+
+        // Process physics on both threads
+        if (this.entitiesHitCount > piercingLevel) {
+            this.returning = true;
+            this.setNoClip(true);
+            this.setVelocity(this.getVelocity().multiply(-0.1));
+        } else {
+            this.setVelocity(this.getVelocity().multiply(0.95));
+            if (!this.getWorld().isClient) {
+                this.getWorld().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ITEM_TRIDENT_HIT, net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 2.0f);
+            }
+        }
+
+        // =========================================================================
+        // NOW we tell the Client thread to stop, safely after it logged the hit!
+        // =========================================================================
+        if (this.getWorld().isClient) return;
+
         float damage = this.impactDamage;
         float damageMult = 1.0f;
 
-        // 1.21 FIX: Safe Optional Registry Lookups to prevent Limbo Crashes!
-        var enchantmentRegistry = this.getWorld().getRegistryManager().getWrapperOrThrow(RegistryKeys.ENCHANTMENT);
         var densityEntry = enchantmentRegistry.getOptional(BetterShieldEnchantments.SHIELD_DENSITY);
         if (densityEntry.isPresent()) {
             int density = EnchantmentHelper.getLevel(densityEntry.get(), this.getStack());
@@ -197,9 +257,9 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
             if (this.stunEnabled && target instanceof LivingEntity livingTarget) {
                 BetterShieldConfig config = Bettershield.getConfig();
                 var stunEntry = Registries.STATUS_EFFECT.getEntry(Bettershield.STUN_EFFECT);
-                livingTarget.addStatusEffect(new StatusEffectInstance(stunEntry, config.stunMechanics.stunDuration, 0, false, false, true));
 
-                if (!this.getWorld().isClient) {
+                if (stunEntry != null) {
+                    livingTarget.addStatusEffect(new StatusEffectInstance(stunEntry, config.stunMechanics.stunDuration, 0, false, false, true));
                     Bettershield.StunMobsPayload stunPayload = new Bettershield.StunMobsPayload(livingTarget.getId(), config.stunMechanics.stunDuration);
                     this.getWorld().getPlayers().forEach(p -> net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send((ServerPlayerEntity)p, stunPayload));
                 }
@@ -208,11 +268,11 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
             if (owner instanceof ServerPlayerEntity serverPlayer) {
                 var loyaltyEntry = enchantmentRegistry.getOptional(Enchantments.LOYALTY);
                 if (loyaltyEntry.isPresent() && EnchantmentHelper.getLevel(loyaltyEntry.get(), this.getStack()) > 0) {
-                    BetterShieldCriteria.SHIELD_THROW_HIT.trigger(serverPlayer);
+                    BetterShieldCriteria.grantAdvancement(serverPlayer, "throw_joke");
                 }
 
-                if (this.entitiesHitCount == 2) {
-                    BetterShieldCriteria.CAPTAIN_AMERICA.trigger(serverPlayer);
+                if (this.entitiesHitCount >= 3) {
+                    BetterShieldCriteria.grantAdvancement(serverPlayer, "captain_america");
                 }
             }
 
@@ -230,30 +290,15 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
         } else {
             target.damage(this.getDamageSources().thrown(this, this.getOwner()), damage);
         }
-
-        int piercingLevel = 0;
-        var piercingEntry = enchantmentRegistry.getOptional(Enchantments.PIERCING);
-        if (piercingEntry.isPresent()) {
-            piercingLevel = EnchantmentHelper.getLevel(piercingEntry.get(), this.getStack());
-        }
-
-        this.entitiesHitCount++;
-
-        if (this.entitiesHitCount > piercingLevel) {
-            this.returning = true;
-            this.setVelocity(this.getVelocity().multiply(-0.1));
-        } else {
-            this.setVelocity(this.getVelocity().multiply(0.95));
-            this.getWorld().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ITEM_TRIDENT_HIT, net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 2.0f);
-        }
     }
 
     @Override
-    protected void onCollision(HitResult hitResult) {
-        super.onCollision(hitResult);
-        if (hitResult.getType() == HitResult.Type.BLOCK) {
-            this.returning = true;
+    protected boolean canHit(Entity entity) {
+        // Enforces the memory list so raycasts pass clean through after hitting once
+        if (this.hitEntities.contains(entity.getId())) {
+            return false;
         }
+        return super.canHit(entity);
     }
 
     @Override

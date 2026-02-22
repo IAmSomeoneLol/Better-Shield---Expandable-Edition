@@ -1,0 +1,12 @@
+{
+  "replace": false,
+  "values": [
+    "bettershield:shield_density",
+    "bettershield:parryful",
+    "bettershield:deflector",
+    "bettershield:parry_doctrine",
+    "bettershield:slam_foam",
+    "bettershield:masterine",
+    "bettershield:active_armor"
+  ]
+}

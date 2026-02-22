@@ -1,9 +1,7 @@
 {
   "parent": "bettershield:bettershield/root",
   "display": {
-    "icon": {
-      "id": "minecraft:iron_ingot"
-    },
+    "icon": { "id": "minecraft:iron_ingot" },
     "title": "Parried it!",
     "description": "Parry a Player or Mob at least once",
     "frame": "task",
@@ -11,8 +9,6 @@
     "announce_to_chat": true
   },
   "criteria": {
-    "parry": {
-      "trigger": "bettershield:parry"
-    }
+    "unlock": { "trigger": "minecraft:impossible" }
   }
 }
