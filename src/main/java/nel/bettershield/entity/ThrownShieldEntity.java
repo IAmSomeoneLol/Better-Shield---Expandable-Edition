@@ -43,7 +43,6 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
     }
 
     public ThrownShieldEntity(World world, LivingEntity owner, ItemStack stack) {
-        // 1.21 FIX: Added mandatory double stack argument to constructor
         super(Bettershield.THROWN_SHIELD_ENTITY_TYPE, owner.getX(), owner.getEyeY() - 0.10000000149011612D, owner.getZ(), world, stack, stack);
         this.setOwner(owner);
         this.setStack(stack);
@@ -175,12 +174,15 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
 
         Entity target = entityHitResult.getEntity();
         float damage = this.impactDamage;
-
-        // 1.21 FIX: Registry lookups
-        var enchantmentRegistry = this.getWorld().getRegistryManager().getWrapperOrThrow(RegistryKeys.ENCHANTMENT);
         float damageMult = 1.0f;
-        int density = EnchantmentHelper.getLevel(enchantmentRegistry.getOrThrow(BetterShieldEnchantments.SHIELD_DENSITY), this.getStack());
-        damageMult += (density * 0.1f);
+
+        // 1.21 FIX: Safe Optional Registry Lookups to prevent Limbo Crashes!
+        var enchantmentRegistry = this.getWorld().getRegistryManager().getWrapperOrThrow(RegistryKeys.ENCHANTMENT);
+        var densityEntry = enchantmentRegistry.getOptional(BetterShieldEnchantments.SHIELD_DENSITY);
+        if (densityEntry.isPresent()) {
+            int density = EnchantmentHelper.getLevel(densityEntry.get(), this.getStack());
+            damageMult += (density * 0.1f);
+        }
 
         if (this.getStack().getItem() instanceof ModShieldItem modShield) {
             damageMult += modShield.getDamageBonus();
@@ -204,7 +206,8 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
             }
 
             if (owner instanceof ServerPlayerEntity serverPlayer) {
-                if (EnchantmentHelper.getLevel(enchantmentRegistry.getOrThrow(Enchantments.LOYALTY), this.getStack()) > 0) {
+                var loyaltyEntry = enchantmentRegistry.getOptional(Enchantments.LOYALTY);
+                if (loyaltyEntry.isPresent() && EnchantmentHelper.getLevel(loyaltyEntry.get(), this.getStack()) > 0) {
                     BetterShieldCriteria.SHIELD_THROW_HIT.trigger(serverPlayer);
                 }
 
@@ -228,7 +231,12 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
             target.damage(this.getDamageSources().thrown(this, this.getOwner()), damage);
         }
 
-        int piercingLevel = EnchantmentHelper.getLevel(enchantmentRegistry.getOrThrow(Enchantments.PIERCING), this.getStack());
+        int piercingLevel = 0;
+        var piercingEntry = enchantmentRegistry.getOptional(Enchantments.PIERCING);
+        if (piercingEntry.isPresent()) {
+            piercingLevel = EnchantmentHelper.getLevel(piercingEntry.get(), this.getStack());
+        }
+
         this.entitiesHitCount++;
 
         if (this.entitiesHitCount > piercingLevel) {

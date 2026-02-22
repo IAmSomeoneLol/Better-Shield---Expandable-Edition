@@ -4,9 +4,7 @@
       "id": "minecraft:shield",
       "components": {
         "minecraft:enchantments": {
-          "levels": {
-            "minecraft:loyalty": 1
-          }
+          "minecraft:loyalty": 1
         }
       }
     },
