@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class StunDamageMixin {
 
     @Inject(method = "damage", at = @At("HEAD"), cancellable = true)
-    private void nullifyDamageFromStunnedSource(ServerWorld world, DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+    private void nullifyDamageFromStunnedSource(ServerWorld serverWorld, DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
         if (source.getAttacker() instanceof LivingEntity attacker) {
             var stunEntry = Registries.STATUS_EFFECT.getEntry(Bettershield.STUN_EFFECT);
             if (stunEntry != null && attacker.hasStatusEffect(stunEntry)) {

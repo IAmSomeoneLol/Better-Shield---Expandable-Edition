@@ -14,9 +14,8 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 @Mixin(LivingEntity.class)
 public abstract class FireResistanceMixin {
 
-    // 1.21.2 FIX: ServerWorld is now the second argument, ordinal = 0 grabs the float.
     @ModifyVariable(method = "damage", at = @At("HEAD"), argsOnly = true, ordinal = 0)
-    private float reduceFireDamage(float amount, ServerWorld world, DamageSource source) {
+    private float reduceFireDamage(float amount, ServerWorld serverWorld, DamageSource source) {
         LivingEntity entity = (LivingEntity) (Object) this;
 
         if (entity instanceof PlayerEntity player && source.isIn(DamageTypeTags.IS_FIRE)) {

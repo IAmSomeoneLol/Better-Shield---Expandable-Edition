@@ -34,7 +34,6 @@ public abstract class ShieldParryMixin {
     @Shadow public abstract int getItemUseTime();
     @Shadow public abstract ItemStack getActiveItem();
 
-    // 1.21.2 FIX: ServerWorld prepended to the signature!
     @Inject(method = "damage", at = @At("HEAD"), cancellable = true)
     private void onDamage(ServerWorld serverWorld, DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
         LivingEntity user = (LivingEntity) (Object) this;
@@ -128,7 +127,6 @@ public abstract class ShieldParryMixin {
 
                     Bettershield.setParryDebounce(player);
 
-                    // 1.21.2 FIX
                     player.getItemCooldownManager().set(activeShield, 0);
                     this.damageShield(player, 1);
                     player.getWorld().playSound(null, player.getBlockPos(), SoundEvents.ITEM_TRIDENT_HIT, SoundCategory.PLAYERS, 1.0f, 1.0f);
@@ -169,7 +167,6 @@ public abstract class ShieldParryMixin {
 
                     Bettershield.setParryDebounce(player);
 
-                    // 1.21.2 FIX
                     player.getItemCooldownManager().set(activeShield, 0);
                     this.damageShield(player, 1);
 

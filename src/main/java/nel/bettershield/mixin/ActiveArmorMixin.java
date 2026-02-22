@@ -15,9 +15,8 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 @Mixin(LivingEntity.class)
 public abstract class ActiveArmorMixin {
 
-    // In 1.21.2, amount is the second parameter (ordinal = 0 for floats) after ServerWorld
     @ModifyVariable(method = "damage", at = @At("HEAD"), argsOnly = true, ordinal = 0)
-    private float reduceDamageWithActiveArmor(float amount, ServerWorld world, DamageSource source) {
+    private float reduceDamageWithActiveArmor(float amount, ServerWorld serverWorld, DamageSource source) {
         LivingEntity entity = (LivingEntity) (Object) this;
         ItemStack offHand = entity.getOffHandStack();
 
