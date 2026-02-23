@@ -104,8 +104,8 @@ public abstract class ShieldParryMixin {
 
                             if (newProjectile instanceof PersistentProjectileEntity arrow) {
                                 if (levelDeflector > 0) {
-                                    double oldDmg = arrow.getDamage();
-                                    arrow.setDamage(oldDmg * (1.0 + (levelDeflector * 0.15)));
+                                    double baseDmg = (arrow instanceof TridentEntity) ? 8.0 : 2.0;
+                                    arrow.setDamage(baseDmg * (1.0 + (levelDeflector * 0.15)));
                                 }
                                 arrow.pickupType = PersistentProjectileEntity.PickupPermission.DISALLOWED;
                             }
@@ -129,7 +129,7 @@ public abstract class ShieldParryMixin {
 
                     player.getItemCooldownManager().set(activeShield, 0);
                     this.damageShield(player, 1);
-                    player.getWorld().playSound(null, player.getBlockPos(), SoundEvents.ITEM_TRIDENT_HIT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+                    player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ITEM_TRIDENT_HIT, SoundCategory.PLAYERS, 1.0f, 1.0f);
                     return;
                 }
 
@@ -170,7 +170,7 @@ public abstract class ShieldParryMixin {
                     player.getItemCooldownManager().set(activeShield, 0);
                     this.damageShield(player, 1);
 
-                    player.getWorld().playSound(null, player.getBlockPos(), SoundEvents.BLOCK_ANVIL_LAND, SoundCategory.PLAYERS, 1.0f, 1.5f);
+                    player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BLOCK_ANVIL_LAND, SoundCategory.PLAYERS, 1.0f, 1.5f);
                     attacker.takeKnockback(0.5, player.getX() - attacker.getX(), player.getZ() - attacker.getZ());
 
                     return;
@@ -186,21 +186,21 @@ public abstract class ShieldParryMixin {
 
         if (old instanceof ArrowEntity oldArrow) {
             ArrowEntity newArrow = new ArrowEntity(world, owner, oldArrow.getItemStack().copy(), oldArrow.getItemStack().copy());
-            newArrow.setDamage(oldArrow.getDamage());
+            newArrow.setDamage(2.0); // 1.21.5 FIX: Set to default arrow damage
             newArrow.setCritical(oldArrow.isCritical());
             if (oldArrow.isOnFire()) newArrow.setOnFireFor(100);
             result = newArrow;
         }
         else if (old instanceof SpectralArrowEntity oldSpectral) {
             SpectralArrowEntity newSpectral = new SpectralArrowEntity(world, owner, oldSpectral.getItemStack().copy(), oldSpectral.getItemStack().copy());
-            newSpectral.setDamage(oldSpectral.getDamage());
+            newSpectral.setDamage(2.0);
             newSpectral.setCritical(oldSpectral.isCritical());
             if (oldSpectral.isOnFire()) newSpectral.setOnFireFor(100);
             result = newSpectral;
         }
         else if (old instanceof TridentEntity oldTrident) {
             TridentEntity newTrident = new TridentEntity(world, owner, oldTrident.getItemStack().copy());
-            newTrident.setDamage(oldTrident.getDamage());
+            newTrident.setDamage(8.0);
             result = newTrident;
         }
 

@@ -4,7 +4,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.particle.*;
 import net.minecraft.client.world.ClientWorld;
-import net.minecraft.particle.SimpleParticleType; // --- 1.20.5 FIX: Renamed from DefaultParticleType ---
+import net.minecraft.particle.SimpleParticleType;
 
 @Environment(EnvType.CLIENT)
 public class CloudParticle extends SpriteBillboardParticle {
@@ -22,14 +22,15 @@ public class CloudParticle extends SpriteBillboardParticle {
         this.red = grey;
         this.green = grey;
         this.blue = grey;
-        this.alpha = 0.8f;
+        this.setAlpha(0.8f);
     }
 
     @Override
     public void tick() {
-        this.prevPosX = this.x;
-        this.prevPosY = this.y;
-        this.prevPosZ = this.z;
+        // 1.21.5 FIX: prevPosX/Y/Z is now lastX/Y/Z
+        this.lastX = this.x;
+        this.lastY = this.y;
+        this.lastZ = this.z;
 
         if (this.age++ >= this.maxAge) {
             this.markDead();
@@ -38,8 +39,8 @@ public class CloudParticle extends SpriteBillboardParticle {
 
         this.scale += 0.01f;
         if (this.age > this.maxAge / 2) {
-            this.alpha = 1.0f - ((float)(this.age - (this.maxAge/2)) / (float)(this.maxAge/2));
-            if (this.alpha < 0) this.alpha = 0;
+            float fade = 1.0f - ((float)(this.age - (this.maxAge/2)) / (float)(this.maxAge/2));
+            this.setAlpha(Math.max(0.0f, fade));
         }
 
         this.move(this.velocityX, this.velocityY, this.velocityZ);

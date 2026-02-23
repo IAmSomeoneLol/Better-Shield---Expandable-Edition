@@ -4,7 +4,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.particle.*;
 import net.minecraft.client.world.ClientWorld;
-import net.minecraft.particle.SimpleParticleType; // --- 1.20.5 FIX: Renamed from DefaultParticleType ---
+import net.minecraft.particle.SimpleParticleType;
 
 @Environment(EnvType.CLIENT)
 public class SparkParticle extends SpriteBillboardParticle {
@@ -27,9 +27,11 @@ public class SparkParticle extends SpriteBillboardParticle {
 
     @Override
     public void tick() {
-        this.prevPosX = this.x;
-        this.prevPosY = this.y;
-        this.prevPosZ = this.z;
+        // 1.21.5 FIX: prevPosX/Y/Z is now lastX/Y/Z
+        this.lastX = this.x;
+        this.lastY = this.y;
+        this.lastZ = this.z;
+
         if (this.age++ >= this.maxAge) {
             this.markDead();
             return;

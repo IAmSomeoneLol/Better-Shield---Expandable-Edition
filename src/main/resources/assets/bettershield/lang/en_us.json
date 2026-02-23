@@ -94,6 +94,9 @@
   "item.bettershield.netherite_shield.brown": "Brown Netherite Shield",
   "item.bettershield.netherite_shield.green": "Green Netherite Shield",
   "item.bettershield.netherite_shield.red": "Red Netherite Shield",
-  "item.bettershield.netherite_shield.black": "Black Netherite Shield"
+  "item.bettershield.netherite_shield.black": "Black Netherite Shield",
 
+  "tag.item.bettershield.shields": "Better Shields",
+  "tag.item.bettershield.loyalty_items": "Loyalty Items",
+  "tag.item.bettershield.piercing_items": "Piercing Items"
 }

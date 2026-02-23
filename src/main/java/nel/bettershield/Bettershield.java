@@ -244,7 +244,8 @@ public class Bettershield implements ModInitializer {
 									}
 								}
 							}
-							player.getWorld().playSound(null, player.getBlockPos(), SoundEvents.ITEM_SHIELD_BLOCK, SoundCategory.PLAYERS, 1.0f, 0.5f);
+
+							player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ITEM_SHIELD_BLOCK, SoundCategory.PLAYERS, 1.0f, 0.5f);
 
 							int masterineLevel = EnchantmentHelper.getLevel(player.getWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT).getOrThrow(BetterShieldEnchantments.MASTERINE), shieldStack);
 							int baseCd = config.cooldowns.bashCooldown;

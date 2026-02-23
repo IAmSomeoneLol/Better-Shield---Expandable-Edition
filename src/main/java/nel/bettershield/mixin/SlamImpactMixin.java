@@ -35,8 +35,9 @@ import java.util.List;
 @Mixin(PlayerEntity.class)
 public abstract class SlamImpactMixin {
 
+    // 1.21.5 FIX: fallDistance is now a double!
     @Inject(method = "handleFallDamage", at = @At("HEAD"))
-    public void onFallDamage(float fallDistance, float damageMultiplier, DamageSource damageSource, CallbackInfoReturnable<Boolean> cir) {
+    public void onFallDamage(double fallDistance, float damageMultiplier, DamageSource damageSource, CallbackInfoReturnable<Boolean> cir) {
         PlayerEntity player = (PlayerEntity) (Object) this;
 
         if (player.getWorld().isClient) return;
@@ -120,17 +121,17 @@ public abstract class SlamImpactMixin {
 
             for (Entity target : targets) {
                 if (target instanceof LivingEntity living) {
-                    // 1.21.2 FIX
                     living.damage(world, player.getDamageSources().playerAttack(player), impactDamage);
                     living.addVelocity(0, 0.6, 0);
                     living.velocityModified = true;
 
                     if (config.stunMechanics.slamStunEnabled) {
                         var stunEntry = Registries.STATUS_EFFECT.getEntry(Bettershield.STUN_EFFECT);
-                        living.addStatusEffect(new StatusEffectInstance(stunEntry, config.stunMechanics.stunDuration, 0, false, false, true));
-
-                        Bettershield.StunMobsPayload stunPayload = new Bettershield.StunMobsPayload(living.getId(), config.stunMechanics.stunDuration);
-                        world.getPlayers().forEach(p -> ServerPlayNetworking.send((ServerPlayerEntity)p, stunPayload));
+                        if (stunEntry != null) {
+                            living.addStatusEffect(new StatusEffectInstance(stunEntry, config.stunMechanics.stunDuration, 0, false, false, true));
+                            Bettershield.StunMobsPayload stunPayload = new Bettershield.StunMobsPayload(living.getId(), config.stunMechanics.stunDuration);
+                            world.getPlayers().forEach(p -> ServerPlayNetworking.send((ServerPlayerEntity)p, stunPayload));
+                        }
                     }
                     entitiesHit++;
                 }

@@ -9,7 +9,7 @@ import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.FlyingItemEntity; // 1.21.2 FIX
+import net.minecraft.entity.FlyingItemEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
@@ -34,7 +34,6 @@ import net.minecraft.world.World;
 import java.util.ArrayList;
 import java.util.List;
 
-// 1.21.2 FIX: Added implements FlyingItemEntity so the renderer accepts it
 public class ThrownShieldEntity extends PersistentProjectileEntity implements FlyingItemEntity {
     private static final TrackedData<ItemStack> SHIELD_STACK = DataTracker.registerData(ThrownShieldEntity.class, TrackedDataHandlerRegistry.ITEM_STACK);
     private static final TrackedData<Boolean> IS_OFFHAND = DataTracker.registerData(ThrownShieldEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
@@ -303,14 +302,14 @@ public class ThrownShieldEntity extends PersistentProjectileEntity implements Fl
     public void readCustomDataFromNbt(NbtCompound nbt) {
         super.readCustomDataFromNbt(nbt);
         if (nbt.contains("Shield")) {
-            this.setStack(ItemStack.fromNbtOrEmpty(this.getRegistryManager(), nbt.getCompound("Shield")));
+            this.setStack(ItemStack.fromNbt(this.getRegistryManager(), nbt.getCompound("Shield").orElse(new NbtCompound())).orElse(ItemStack.EMPTY));
         }
-        this.returning = nbt.getBoolean("Returning");
-        this.dataTracker.set(IS_OFFHAND, nbt.getBoolean("IsOffhand"));
+        this.returning = nbt.getBoolean("Returning").orElse(false);
+        this.dataTracker.set(IS_OFFHAND, nbt.getBoolean("IsOffhand").orElse(false));
         if (nbt.contains("ImpactDamage")) {
-            this.impactDamage = nbt.getFloat("ImpactDamage");
+            this.impactDamage = nbt.getFloat("ImpactDamage").orElse(2.0f);
         }
-        this.stunEnabled = nbt.getBoolean("StunEnabled");
-        this.entitiesHitCount = nbt.getInt("EntitiesHit");
+        this.stunEnabled = nbt.getBoolean("StunEnabled").orElse(false);
+        this.entitiesHitCount = nbt.getInt("EntitiesHit").orElse(0);
     }
 }

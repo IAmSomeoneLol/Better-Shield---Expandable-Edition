@@ -3,7 +3,6 @@ package nel.bettershield;
 import nel.bettershield.client.ShieldHudOverlay;
 import nel.bettershield.client.SparkParticle;
 import nel.bettershield.client.CloudParticle;
-import nel.bettershield.client.ModShieldRenderer;
 import nel.bettershield.client.ThrownShieldEntityRenderer;
 import nel.bettershield.registry.BetterShieldItems;
 import net.fabricmc.api.ClientModInitializer;
@@ -15,9 +14,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
-import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.item.ModelPredicateProviderRegistry;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.render.*;
 import net.minecraft.client.util.InputUtil;
@@ -26,7 +23,6 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
 import net.minecraft.particle.ItemStackParticleEffect;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.Registries;
@@ -67,26 +63,10 @@ public class BettershieldClient implements ClientModInitializer {
 	public void onInitializeClient() {
 		HudRenderCallback.EVENT.register(new ShieldHudOverlay());
 
-		// We explicitly map your custom ThrownShieldEntityRenderer here!
 		EntityRendererRegistry.register(Bettershield.THROWN_SHIELD_ENTITY_TYPE, ThrownShieldEntityRenderer::new);
 
 		ParticleFactoryRegistry.getInstance().register(Bettershield.SPARK_PARTICLE, SparkParticle.Factory::new);
 		ParticleFactoryRegistry.getInstance().register(Bettershield.CLOUD_PARTICLE, CloudParticle.Factory::new);
-
-		registerShieldModel(BetterShieldItems.DIAMOND_SHIELD);
-		registerShieldModel(BetterShieldItems.NETHERITE_SHIELD);
-
-		ModelPredicateProviderRegistry.register(Items.SHIELD, Identifier.of("bettershield", "throwing"),
-				(stack, world, entity, seed) -> {
-					if (entity == null || !isChargingThrow) return 0.0F;
-					return (entity.getMainHandStack() == stack || entity.getOffHandStack() == stack) ? 1.0F : 0.0F;
-				});
-
-		ModelPredicateProviderRegistry.register(Items.SHIELD, Identifier.of("bettershield", "pull"),
-				(stack, world, entity, seed) -> {
-					if (entity == null || !isChargingThrow) return 0.0F;
-					return (float) chargeTicks / 20.0F;
-				});
 
 		ClientPlayNetworking.registerGlobalReceiver(Bettershield.SyncCooldownPayload.ID, (payload, context) -> {
 			int type = payload.type();
@@ -120,7 +100,7 @@ public class BettershieldClient implements ClientModInitializer {
 			context.client().execute(() -> {
 				if (context.client().world != null) {
 					ItemStack debrisStack = new ItemStack(Registries.ITEM.get(Identifier.of(blockId)));
-					if (debrisStack.isEmpty()) debrisStack = new ItemStack(Items.COBBLESTONE);
+					if (debrisStack.isEmpty()) debrisStack = new ItemStack(Registries.ITEM.get(Identifier.of("minecraft", "cobblestone")));
 					for (int i = 0; i < 600; i++) {
 						double r = 0.5 + (random.nextDouble() * 1.5);
 						double angle = random.nextDouble() * Math.PI * 2;
@@ -131,7 +111,8 @@ public class BettershieldClient implements ClientModInitializer {
 						double speed = 0.1 + (random.nextDouble() * 0.3);
 						double vx = Math.cos(angle) * speed;
 						double vz = Math.sin(angle) * speed;
-						context.client().world.addParticle(new ItemStackParticleEffect(ParticleTypes.ITEM, debrisStack), ox, oy, oz, vx, vy, vz);
+						// 1.21.5 FIX: Route directly to the ParticleManager to bypass World mapping issues!
+						context.client().particleManager.addParticle(new ItemStackParticleEffect(ParticleTypes.ITEM, debrisStack), ox, oy, oz, vx, vy, vz);
 					}
 				}
 			});
@@ -172,7 +153,8 @@ public class BettershieldClient implements ClientModInitializer {
 						double offsetX = (random.nextGaussian() * 0.2);
 						double offsetZ = (random.nextGaussian() * 0.2);
 						double offsetY = (random.nextDouble() * 0.2);
-						client.world.addParticle(Bettershield.CLOUD_PARTICLE, entity.getX() + offsetX, entity.getY() + offsetY, entity.getZ() + offsetZ, 0, 0.01, 0);
+						// 1.21.5 FIX: Route directly to the ParticleManager!
+						client.particleManager.addParticle(Bettershield.CLOUD_PARTICLE, entity.getX() + offsetX, entity.getY() + offsetY, entity.getZ() + offsetZ, 0.0, 0.01, 0.0);
 					}
 				}
 				if (ticks <= 1) trailIterator.remove(); else entry.setValue(ticks - 1);
@@ -234,35 +216,16 @@ public class BettershieldClient implements ClientModInitializer {
 		});
 	}
 
-	private void registerShieldModel(Item item) {
-		ModelPredicateProviderRegistry.register(item, Identifier.of("blocking"),
-				(stack, world, entity, seed) -> entity != null && entity.isUsingItem() && entity.getActiveItem() == stack ? 1.0F : 0.0F);
-
-		ModelPredicateProviderRegistry.register(item, Identifier.of("bettershield", "throwing"),
-				(stack, world, entity, seed) -> {
-					if (entity == null || !isChargingThrow) return 0.0F;
-					return (entity.getMainHandStack() == stack || entity.getOffHandStack() == stack) ? 1.0F : 0.0F;
-				});
-
-		ModelPredicateProviderRegistry.register(item, Identifier.of("bettershield", "pull"),
-				(stack, world, entity, seed) -> {
-					if (entity == null || !isChargingThrow) return 0.0F;
-					return (float) chargeTicks / 20.0F;
-				});
-
-		BuiltinItemRendererRegistry.INSTANCE.register(item, new ModShieldRenderer());
-	}
-
 	private void renderHalo(WorldRenderContext context, LivingEntity entity) {
 		MatrixStack matrices = context.matrixStack();
 		Vec3d cameraPos = context.camera().getPos();
 		VertexConsumerProvider consumers = context.consumers();
 
-		float tickDelta = context.tickCounter().getTickDelta(true);
+		float tickDelta = context.tickCounter().getTickProgress(true);
 
-		double x = net.minecraft.util.math.MathHelper.lerp(tickDelta, entity.prevX, entity.getX());
-		double y = net.minecraft.util.math.MathHelper.lerp(tickDelta, entity.prevY, entity.getY());
-		double z = net.minecraft.util.math.MathHelper.lerp(tickDelta, entity.prevZ, entity.getZ());
+		double x = net.minecraft.util.math.MathHelper.lerp(tickDelta, entity.lastRenderX, entity.getX());
+		double y = net.minecraft.util.math.MathHelper.lerp(tickDelta, entity.lastRenderY, entity.getY());
+		double z = net.minecraft.util.math.MathHelper.lerp(tickDelta, entity.lastRenderZ, entity.getZ());
 		double height = entity.getEyeHeight(entity.getPose()) + 0.5;
 		float time = entity.age + tickDelta;
 

@@ -9,10 +9,9 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 @Mixin(PlayerEntity.class)
 public abstract class SlamFallReductionMixin {
 
-    // Added "ordinal = 0" to tell Mixin we want the FIRST float (fallDistance),
-    // not the second one (damageMultiplier).
+    // 1.21.5 FIX: fallDistance is a double now! We must return and accept a double.
     @ModifyVariable(method = "handleFallDamage", at = @At("HEAD"), ordinal = 0, argsOnly = true)
-    private float reduceFallDamage(float fallDistance) {
+    private double reduceFallDamage(double fallDistance) {
         PlayerEntity player = (PlayerEntity) (Object) this;
 
         // Check if SLAM_COOLDOWN exists
@@ -24,8 +23,8 @@ public abstract class SlamFallReductionMixin {
             // it means we just finished a Slam.
             // (Cooldown is 60 ticks. If 50+ ticks remain, we are fresh).
             if (cooldownEnd - now > 50) {
-                // Reduce Fall Damage by 25% (multiply by 0.75)
-                return fallDistance * 0.75f;
+                // Reduce Fall Damage by 25%
+                return fallDistance * 0.75;
             }
         }
 

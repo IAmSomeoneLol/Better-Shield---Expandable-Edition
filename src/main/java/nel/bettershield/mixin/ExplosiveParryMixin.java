@@ -70,10 +70,11 @@ public abstract class ExplosiveParryMixin {
 
                     if (config.stunMechanics.deflectStunEnabled && self.getOwner() instanceof LivingEntity shooter) {
                         var stunEntry = Registries.STATUS_EFFECT.getEntry(Bettershield.STUN_EFFECT);
-                        shooter.addStatusEffect(new StatusEffectInstance(stunEntry, config.stunMechanics.stunDuration, 0, false, false, true));
-
-                        Bettershield.StunMobsPayload stunPayload = new Bettershield.StunMobsPayload(shooter.getId(), config.stunMechanics.stunDuration);
-                        player.getWorld().getPlayers().forEach(p -> ServerPlayNetworking.send((ServerPlayerEntity)p, stunPayload));
+                        if (stunEntry != null) {
+                            shooter.addStatusEffect(new StatusEffectInstance(stunEntry, config.stunMechanics.stunDuration, 0, false, false, true));
+                            Bettershield.StunMobsPayload stunPayload = new Bettershield.StunMobsPayload(shooter.getId(), config.stunMechanics.stunDuration);
+                            player.getWorld().getPlayers().forEach(p -> ServerPlayNetworking.send((ServerPlayerEntity)p, stunPayload));
+                        }
                     }
 
                     Vec3d dir = player.getRotationVector();
@@ -85,8 +86,8 @@ public abstract class ExplosiveParryMixin {
 
                         int power = 1;
                         if (nbt.contains("ExplosionPower")) {
-                            power = nbt.getInt("ExplosionPower");
-                        } else if (nbt.contains("Power", 9)) {
+                            power = nbt.getInt("ExplosionPower").orElse(1);
+                        } else if (nbt.contains("Power")) {
                             power = 1;
                         }
 
@@ -121,11 +122,10 @@ public abstract class ExplosiveParryMixin {
                     Bettershield.triggerCooldown(player, activeShield, 4, finalCd);
                     Bettershield.setParryDebounce(player);
 
-                    // 1.21.2 FIX: set() now takes the ItemStack instead of the Item!
                     player.getItemCooldownManager().set(activeShield, 0);
 
                     activeShield.damage(1, player, player.getActiveHand() == Hand.MAIN_HAND ? net.minecraft.entity.EquipmentSlot.MAINHAND : net.minecraft.entity.EquipmentSlot.OFFHAND);
-                    player.getWorld().playSound(null, player.getBlockPos(), SoundEvents.ITEM_FIRECHARGE_USE, SoundCategory.PLAYERS, 1.0f, 1.5f);
+                    player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ITEM_FIRECHARGE_USE, SoundCategory.PLAYERS, 1.0f, 1.5f);
 
                     self.discard();
                     ci.cancel();
