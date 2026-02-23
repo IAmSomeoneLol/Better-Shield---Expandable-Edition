@@ -2,7 +2,6 @@
   "description": {
     "translate": "enchantment.minecraft.loyalty"
   },
-  "exclusive_set": "#minecraft:exclusive_set/loyalty",
   "supported_items": "#bettershield:loyalty_items",
   "primary_items": "#bettershield:loyalty_items",
   "weight": 5,

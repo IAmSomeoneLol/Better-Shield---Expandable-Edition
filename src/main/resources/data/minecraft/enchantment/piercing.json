@@ -2,7 +2,6 @@
   "description": {
     "translate": "enchantment.minecraft.piercing"
   },
-  "exclusive_set": "#minecraft:exclusive_set/piercing",
   "supported_items": "#bettershield:piercing_items",
   "primary_items": "#bettershield:piercing_items",
   "weight": 10,
