@@ -15,7 +15,8 @@
 		"SwiftSneakMixin",
 		"FireResistanceMixin",
 		"ActiveArmorMixin",
-		"LivingEntityMixin"
+		"LivingEntityMixin",
+		"VanillaShieldEnchantableMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

@@ -14,18 +14,30 @@ import net.minecraft.util.Identifier;
 
 public class BetterShieldItems {
 
-    // 1.21.2 FIX: Items now require a RegistryKey passed directly to their Settings
     public static final RegistryKey<Item> DIAMOND_SHIELD_KEY = RegistryKey.of(RegistryKeys.ITEM, Identifier.of(Bettershield.MOD_ID, "diamond_shield"));
-    public static final Item DIAMOND_SHIELD = new ModShieldItem(
-            new Item.Settings().registryKey(DIAMOND_SHIELD_KEY).maxCount(1),
-            437, 0.15f, 0.10f, false, 10
-    );
-
     public static final RegistryKey<Item> NETHERITE_SHIELD_KEY = RegistryKey.of(RegistryKeys.ITEM, Identifier.of(Bettershield.MOD_ID, "netherite_shield"));
-    public static final Item NETHERITE_SHIELD = new ModShieldItem(
-            new Item.Settings().registryKey(NETHERITE_SHIELD_KEY).maxCount(1).fireproof(),
-            538, 0.25f, 0.20f, true, 15
-    );
+
+    public static final Item DIAMOND_SHIELD;
+    public static final Item NETHERITE_SHIELD;
+
+    static {
+        // Turn on the flag so the Mixin knows we are building our custom shields
+        ModShieldItem.IS_CUSTOM_BUILDING.set(true);
+
+        // 1.21.2 FIX: Use .enchantable() explicitly so the Enchanting Table accepts them
+        DIAMOND_SHIELD = new ModShieldItem(
+                new Item.Settings().registryKey(DIAMOND_SHIELD_KEY).maxCount(1).enchantable(10),
+                437, 0.15f, 0.10f, false, 10
+        );
+
+        NETHERITE_SHIELD = new ModShieldItem(
+                new Item.Settings().registryKey(NETHERITE_SHIELD_KEY).maxCount(1).fireproof().enchantable(15),
+                538, 0.25f, 0.20f, true, 15
+        );
+
+        // Turn the flag off
+        ModShieldItem.IS_CUSTOM_BUILDING.set(false);
+    }
 
     public static void register() {
         Registry.register(Registries.ITEM, DIAMOND_SHIELD_KEY, DIAMOND_SHIELD);

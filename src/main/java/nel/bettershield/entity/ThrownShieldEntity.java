@@ -9,6 +9,7 @@ import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.FlyingItemEntity; // 1.21.2 FIX
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
@@ -33,7 +34,8 @@ import net.minecraft.world.World;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ThrownShieldEntity extends PersistentProjectileEntity {
+// 1.21.2 FIX: Added implements FlyingItemEntity so the renderer accepts it
+public class ThrownShieldEntity extends PersistentProjectileEntity implements FlyingItemEntity {
     private static final TrackedData<ItemStack> SHIELD_STACK = DataTracker.registerData(ThrownShieldEntity.class, TrackedDataHandlerRegistry.ITEM_STACK);
     private static final TrackedData<Boolean> IS_OFFHAND = DataTracker.registerData(ThrownShieldEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
 
@@ -69,6 +71,7 @@ public class ThrownShieldEntity extends PersistentProjectileEntity {
         this.dataTracker.set(SHIELD_STACK, stack);
     }
 
+    @Override
     public ItemStack getStack() {
         return this.dataTracker.get(SHIELD_STACK);
     }

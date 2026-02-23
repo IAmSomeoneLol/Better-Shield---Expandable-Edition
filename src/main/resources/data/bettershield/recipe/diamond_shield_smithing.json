@@ -1,14 +1,8 @@
 {
   "type": "minecraft:smithing_transform",
-  "template": {
-    "tag": "minecraft:logs"
-  },
-  "base": {
-    "item": "minecraft:shield"
-  },
-  "addition": {
-    "item": "minecraft:diamond"
-  },
+  "template": "#minecraft:logs",
+  "base": "minecraft:shield",
+  "addition": "minecraft:diamond",
   "result": {
     "id": "bettershield:diamond_shield"
   }

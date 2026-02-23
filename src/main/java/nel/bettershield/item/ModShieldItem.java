@@ -3,6 +3,9 @@ package nel.bettershield.item;
 import net.minecraft.item.ShieldItem;
 
 public class ModShieldItem extends ShieldItem {
+    // Flag to tell the Mixin not to overwrite our custom enchantability
+    public static final ThreadLocal<Boolean> IS_CUSTOM_BUILDING = ThreadLocal.withInitial(() -> false);
+
     private final float damageBonus;
     private final float cooldownReduction;
     private final boolean fireResistant;

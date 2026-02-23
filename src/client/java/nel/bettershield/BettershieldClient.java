@@ -4,6 +4,7 @@ import nel.bettershield.client.ShieldHudOverlay;
 import nel.bettershield.client.SparkParticle;
 import nel.bettershield.client.CloudParticle;
 import nel.bettershield.client.ModShieldRenderer;
+import nel.bettershield.client.ThrownShieldEntityRenderer;
 import nel.bettershield.registry.BetterShieldItems;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -42,7 +43,6 @@ import java.util.UUID;
 
 public class BettershieldClient implements ClientModInitializer {
 
-	// 1.21 FIX: Identifier.of()
 	private static final Identifier STAR_TEXTURE = Identifier.of("bettershield", "textures/particle/stun_star.png");
 	private static final HashMap<Integer, Long> STUNNED_ENTITIES = new HashMap<>();
 
@@ -67,13 +67,15 @@ public class BettershieldClient implements ClientModInitializer {
 	public void onInitializeClient() {
 		HudRenderCallback.EVENT.register(new ShieldHudOverlay());
 
+		// We explicitly map your custom ThrownShieldEntityRenderer here!
+		EntityRendererRegistry.register(Bettershield.THROWN_SHIELD_ENTITY_TYPE, ThrownShieldEntityRenderer::new);
+
 		ParticleFactoryRegistry.getInstance().register(Bettershield.SPARK_PARTICLE, SparkParticle.Factory::new);
 		ParticleFactoryRegistry.getInstance().register(Bettershield.CLOUD_PARTICLE, CloudParticle.Factory::new);
 
 		registerShieldModel(BetterShieldItems.DIAMOND_SHIELD);
 		registerShieldModel(BetterShieldItems.NETHERITE_SHIELD);
 
-		// 1.21 FIX: Identifier.of()
 		ModelPredicateProviderRegistry.register(Items.SHIELD, Identifier.of("bettershield", "throwing"),
 				(stack, world, entity, seed) -> {
 					if (entity == null || !isChargingThrow) return 0.0F;
@@ -117,7 +119,6 @@ public class BettershieldClient implements ClientModInitializer {
 			String blockId = payload.blockId();
 			context.client().execute(() -> {
 				if (context.client().world != null) {
-					// 1.21 FIX: Identifier.of()
 					ItemStack debrisStack = new ItemStack(Registries.ITEM.get(Identifier.of(blockId)));
 					if (debrisStack.isEmpty()) debrisStack = new ItemStack(Items.COBBLESTONE);
 					for (int i = 0; i < 600; i++) {
@@ -234,7 +235,6 @@ public class BettershieldClient implements ClientModInitializer {
 	}
 
 	private void registerShieldModel(Item item) {
-		// 1.21 FIX: Identifier.of()
 		ModelPredicateProviderRegistry.register(item, Identifier.of("blocking"),
 				(stack, world, entity, seed) -> entity != null && entity.isUsingItem() && entity.getActiveItem() == stack ? 1.0F : 0.0F);
 
@@ -258,7 +258,6 @@ public class BettershieldClient implements ClientModInitializer {
 		Vec3d cameraPos = context.camera().getPos();
 		VertexConsumerProvider consumers = context.consumers();
 
-		// 1.21 FIX: tickCounter().getTickDelta(true)
 		float tickDelta = context.tickCounter().getTickDelta(true);
 
 		double x = net.minecraft.util.math.MathHelper.lerp(tickDelta, entity.prevX, entity.getX());
@@ -291,7 +290,6 @@ public class BettershieldClient implements ClientModInitializer {
 	private void drawQuad(MatrixStack matrices, VertexConsumer buffer, float size) {
 		MatrixStack.Entry entry = matrices.peek();
 		int light = 15728880;
-		// 1.21 FIX: Use direct method chaining, Mojang removed .next() from vertex pipeline
 		buffer.vertex(entry, -size, -size, 0).color(255, 255, 255, 255).texture(0, 1).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(entry, 0.0F, 1.0F, 0.0F);
 		buffer.vertex(entry, size, -size, 0).color(255, 255, 255, 255).texture(1, 1).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(entry, 0.0F, 1.0F, 0.0F);
 		buffer.vertex(entry, size, size, 0).color(255, 255, 255, 255).texture(1, 0).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(entry, 0.0F, 1.0F, 0.0F);

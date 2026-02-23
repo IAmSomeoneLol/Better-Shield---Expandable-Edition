@@ -58,7 +58,7 @@ public class ShieldHudOverlay implements HudRenderCallback {
         checkAndAdd(iconsToRender, uuid, now, Bettershield.PARRY_PROJECTILE_COOLDOWN, Bettershield.PARRY_PROJECTILE_MAX, projFinishTime, PARRY_PROJ_ICON, config.hud.hudMode, "proj");
         checkAndAdd(iconsToRender, uuid, now, Bettershield.THROW_COOLDOWN, Bettershield.THROW_MAX, throwFinishTime, THROW_ICON, config.hud.hudMode, "throw");
 
-        int spacing = 12;
+        int spacing = 18;
         for (int i = 0; i < iconsToRender.size(); i++) {
             IconData data = iconsToRender.get(i);
             drawBar(context, i * spacing, 0, data.icon, data.progress);
@@ -110,22 +110,20 @@ public class ShieldHudOverlay implements HudRenderCallback {
     }
 
     private void drawBar(DrawContext context, int x, int y, Identifier icon, float progress) {
-        int destW = 10;
-        int destH = 10;
-        int srcW = 16;
-        int srcH = 16;
+        int size = 16;
+        int colorBg = 0xFF404040; // Dark gray ARGB
+        int colorFg = 0xFFFFFFFF; // White ARGB
 
-        // 1.21.2 FIX: Use RenderLayer for textures with DrawContext
-        context.drawTexture(RenderLayer::getGuiTextured, icon, x, y, 0, 0, destW, destH, srcW, srcH);
+        // 1.21.2 FIX: You must pass the color directly into the 11-parameter drawTexture method!
+        context.drawTexture(RenderLayer::getGuiTextured, icon, x, y, 0f, 0f, size, size, size, size, colorBg);
 
-        int filledDestH = (int) (destH * progress);
-        int emptyDestH = destH - filledDestH;
-        float ratio = (float) srcH / (float) destH;
-        int srcStartV = (int)(emptyDestH * ratio);
-        int srcFilledH = srcH - srcStartV;
+        int filledH = (int) (size * progress);
+        int emptyH = size - filledH;
+        float ratio = (float) size / (float) size;
+        int srcStartV = (int) (emptyH * ratio);
 
-        if (filledDestH > 0) {
-            context.drawTexture(RenderLayer::getGuiTextured, icon, x, y + emptyDestH, 0, srcStartV, destW, filledDestH, srcW, srcH);
+        if (filledH > 0) {
+            context.drawTexture(RenderLayer::getGuiTextured, icon, x, y + emptyH, 0f, (float)srcStartV, size, filledH, size, size, colorFg);
         }
     }
 
