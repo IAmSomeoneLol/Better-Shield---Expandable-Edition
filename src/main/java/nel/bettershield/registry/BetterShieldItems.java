@@ -3,6 +3,7 @@ package nel.bettershield.registry;
 import nel.bettershield.Bettershield;
 import nel.bettershield.item.ModShieldItem;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
+import net.minecraft.component.Component;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroups;
 import net.minecraft.item.Items;
@@ -21,22 +22,31 @@ public class BetterShieldItems {
     public static final Item NETHERITE_SHIELD;
 
     static {
-        // Turn on the flag so the Mixin knows we are building our custom shields
         ModShieldItem.IS_CUSTOM_BUILDING.set(true);
 
-        // 1.21.2 FIX: Use .enchantable() explicitly so the Enchanting Table accepts them
-        DIAMOND_SHIELD = new ModShieldItem(
-                new Item.Settings().registryKey(DIAMOND_SHIELD_KEY).maxCount(1).enchantable(10),
-                437, 0.15f, 0.10f, false, 10
-        );
+        Item.Settings diamondSettings = new Item.Settings().registryKey(DIAMOND_SHIELD_KEY);
+        // 1.21.5 FIX: Copy the invisible blocking components from the Vanilla Shield!
+        for (Component<?> component : Items.SHIELD.getComponents()) {
+            copyComponent(diamondSettings, component);
+        }
+        diamondSettings.maxCount(1).enchantable(10).maxDamage(437);
 
-        NETHERITE_SHIELD = new ModShieldItem(
-                new Item.Settings().registryKey(NETHERITE_SHIELD_KEY).maxCount(1).fireproof().enchantable(15),
-                538, 0.25f, 0.20f, true, 15
-        );
+        Item.Settings netheriteSettings = new Item.Settings().registryKey(NETHERITE_SHIELD_KEY).fireproof();
+        // 1.21.5 FIX: Copy the invisible blocking components from the Vanilla Shield!
+        for (Component<?> component : Items.SHIELD.getComponents()) {
+            copyComponent(netheriteSettings, component);
+        }
+        netheriteSettings.maxCount(1).enchantable(15).maxDamage(538);
 
-        // Turn the flag off
+        DIAMOND_SHIELD = new ModShieldItem(diamondSettings, 437, 0.15f, 0.10f, false, 10);
+        NETHERITE_SHIELD = new ModShieldItem(netheriteSettings, 538, 0.25f, 0.20f, true, 15);
+
         ModShieldItem.IS_CUSTOM_BUILDING.set(false);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> void copyComponent(Item.Settings settings, Component<T> component) {
+        settings.component(component.type(), component.value());
     }
 
     public static void register() {
