@@ -11,7 +11,6 @@ import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.*;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -81,16 +80,8 @@ public abstract class ExplosiveParryMixin {
                     ProjectileEntity newProj = null;
 
                     if (self instanceof FireballEntity oldBall) {
-                        NbtCompound nbt = new NbtCompound();
-                        oldBall.writeCustomDataToNbt(nbt);
-
+                        // 1.21.6 FIX: Bypass NBT parsing logic entirely for the explosion power
                         int power = 1;
-                        if (nbt.contains("ExplosionPower")) {
-                            power = nbt.getInt("ExplosionPower").orElse(1);
-                        } else if (nbt.contains("Power")) {
-                            power = 1;
-                        }
-
                         newProj = new FireballEntity(player.getWorld(), player, dir.normalize(), power);
                     }
                     else if (self instanceof SmallFireballEntity) {

@@ -4,14 +4,13 @@ import nel.bettershield.client.ShieldHudOverlay;
 import nel.bettershield.client.SparkParticle;
 import nel.bettershield.client.CloudParticle;
 import nel.bettershield.client.ThrownShieldEntityRenderer;
-import nel.bettershield.registry.BetterShieldItems;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.client.rendering.v1.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.client.MinecraftClient;
@@ -61,7 +60,9 @@ public class BettershieldClient implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
-		HudRenderCallback.EVENT.register(new ShieldHudOverlay());
+		// 1.21.6 FIX: Register via the new HudElementRegistry
+		ShieldHudOverlay hudOverlay = new ShieldHudOverlay();
+		HudElementRegistry.addLast(Identifier.of(Bettershield.MOD_ID, "shield_hud"), hudOverlay::render);
 
 		EntityRendererRegistry.register(Bettershield.THROWN_SHIELD_ENTITY_TYPE, ThrownShieldEntityRenderer::new);
 
@@ -111,7 +112,6 @@ public class BettershieldClient implements ClientModInitializer {
 						double speed = 0.1 + (random.nextDouble() * 0.3);
 						double vx = Math.cos(angle) * speed;
 						double vz = Math.sin(angle) * speed;
-						// 1.21.5 FIX: Route directly to the ParticleManager to bypass World mapping issues!
 						context.client().particleManager.addParticle(new ItemStackParticleEffect(ParticleTypes.ITEM, debrisStack), ox, oy, oz, vx, vy, vz);
 					}
 				}
@@ -153,7 +153,6 @@ public class BettershieldClient implements ClientModInitializer {
 						double offsetX = (random.nextGaussian() * 0.2);
 						double offsetZ = (random.nextGaussian() * 0.2);
 						double offsetY = (random.nextDouble() * 0.2);
-						// 1.21.5 FIX: Route directly to the ParticleManager!
 						client.particleManager.addParticle(Bettershield.CLOUD_PARTICLE, entity.getX() + offsetX, entity.getY() + offsetY, entity.getZ() + offsetZ, 0.0, 0.01, 0.0);
 					}
 				}

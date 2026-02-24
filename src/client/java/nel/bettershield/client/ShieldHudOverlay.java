@@ -3,7 +3,6 @@ package nel.bettershield.client;
 import me.shedaniel.autoconfig.AutoConfig;
 import nel.bettershield.BetterShieldConfig;
 import nel.bettershield.Bettershield;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.util.Identifier;
@@ -14,7 +13,7 @@ import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ShieldHudOverlay implements HudRenderCallback {
+public class ShieldHudOverlay {
 
     private static final Identifier BASH_ICON = Identifier.of("bettershield", "textures/gui/bash.png");
     private static final Identifier SLAM_ICON = Identifier.of("bettershield", "textures/gui/slam.png");
@@ -28,8 +27,8 @@ public class ShieldHudOverlay implements HudRenderCallback {
     private long projFinishTime = 0;
     private long throwFinishTime = 0;
 
-    @Override
-    public void onHudRender(DrawContext context, RenderTickCounter tickCounter) {
+    // 1.21.6 FIX: Removed HudRenderCallback interface implementation
+    public void render(DrawContext context, RenderTickCounter tickCounter) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null) return;
 
@@ -114,7 +113,6 @@ public class ShieldHudOverlay implements HudRenderCallback {
         int colorBg = 0xFF404040; // Dark gray ARGB
         int colorFg = 0xFFFFFFFF; // White ARGB
 
-        // 1.21.2 FIX: You must pass the color directly into the 11-parameter drawTexture method!
         context.drawTexture(RenderLayer::getGuiTextured, icon, x, y, 0f, 0f, size, size, size, size, colorBg);
 
         int filledH = (int) (size * progress);

@@ -19,7 +19,8 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.PersistentProjectileEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.ReadView;
+import net.minecraft.nbt.WriteView;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -287,29 +288,27 @@ public class ThrownShieldEntity extends PersistentProjectileEntity implements Fl
         return super.canHit(entity);
     }
 
+    // 1.21.6 FIX: writeCustomDataToNbt is replaced with writeData
     @Override
-    public void writeCustomDataToNbt(NbtCompound nbt) {
-        super.writeCustomDataToNbt(nbt);
-        nbt.put("Shield", this.getStack().toNbt(this.getRegistryManager()));
-        nbt.putBoolean("Returning", this.returning);
-        nbt.putBoolean("IsOffhand", this.dataTracker.get(IS_OFFHAND));
-        nbt.putFloat("ImpactDamage", this.impactDamage);
-        nbt.putBoolean("StunEnabled", this.stunEnabled);
-        nbt.putInt("EntitiesHit", this.entitiesHitCount);
+    protected void writeData(WriteView view) {
+        super.writeData(view);
+        view.put("Shield", ItemStack.CODEC, this.getStack());
+        view.putBoolean("Returning", this.returning);
+        view.putBoolean("IsOffhand", this.dataTracker.get(IS_OFFHAND));
+        view.putFloat("ImpactDamage", this.impactDamage);
+        view.putBoolean("StunEnabled", this.stunEnabled);
+        view.putInt("EntitiesHit", this.entitiesHitCount);
     }
 
+    // 1.21.6 FIX: readCustomDataFromNbt is replaced with readData
     @Override
-    public void readCustomDataFromNbt(NbtCompound nbt) {
-        super.readCustomDataFromNbt(nbt);
-        if (nbt.contains("Shield")) {
-            this.setStack(ItemStack.fromNbt(this.getRegistryManager(), nbt.getCompound("Shield").orElse(new NbtCompound())).orElse(ItemStack.EMPTY));
-        }
-        this.returning = nbt.getBoolean("Returning").orElse(false);
-        this.dataTracker.set(IS_OFFHAND, nbt.getBoolean("IsOffhand").orElse(false));
-        if (nbt.contains("ImpactDamage")) {
-            this.impactDamage = nbt.getFloat("ImpactDamage").orElse(2.0f);
-        }
-        this.stunEnabled = nbt.getBoolean("StunEnabled").orElse(false);
-        this.entitiesHitCount = nbt.getInt("EntitiesHit").orElse(0);
+    protected void readData(ReadView view) {
+        super.readData(view);
+        view.read("Shield", ItemStack.CODEC).ifPresent(this::setStack);
+        view.getOptionalBoolean("Returning").ifPresent(v -> this.returning = v);
+        view.getOptionalBoolean("IsOffhand").ifPresent(v -> this.dataTracker.set(IS_OFFHAND, v));
+        view.getOptionalFloat("ImpactDamage").ifPresent(v -> this.impactDamage = v);
+        view.getOptionalBoolean("StunEnabled").ifPresent(v -> this.stunEnabled = v);
+        view.getOptionalInt("EntitiesHit").ifPresent(v -> this.entitiesHitCount = v);
     }
 }
