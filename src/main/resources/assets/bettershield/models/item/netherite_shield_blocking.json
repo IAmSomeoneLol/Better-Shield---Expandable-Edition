@@ -1,5 +1,8 @@
 {
-  "parent": "bettershield:item/netherite_shield",
+  "gui_light": "front",
+  "textures": {
+    "particle": "bettershield:item/netherite_shield"
+  },
   "display": {
     "thirdperson_righthand": { "rotation": [ 45, 155, 0 ], "translation": [ -3.49, 11, -2 ], "scale": [ 1, 1, 1 ] },
     "thirdperson_lefthand": { "rotation": [ 45, 155, 0 ], "translation": [ 11.51, 7, 2.5 ], "scale": [ 1, 1, 1 ] },
