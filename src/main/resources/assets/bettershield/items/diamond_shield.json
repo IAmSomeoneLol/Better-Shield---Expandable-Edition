@@ -3,22 +3,12 @@
     "type": "minecraft:condition",
     "property": "minecraft:using_item",
     "on_false": {
-      "type": "minecraft:special",
-      "base": "bettershield:item/diamond_shield",
-      "model": {
-        "type": "minecraft:shield",
-        "base": "bettershield:entity/diamond_shield_base",
-        "base_no_pattern": "bettershield:entity/diamond_shield_base_nopattern"
-      }
+      "type": "minecraft:model",
+      "model": "bettershield:item/diamond_shield"
     },
     "on_true": {
-      "type": "minecraft:special",
-      "base": "bettershield:item/diamond_shield_blocking",
-      "model": {
-        "type": "minecraft:shield",
-        "base": "bettershield:entity/diamond_shield_base",
-        "base_no_pattern": "bettershield:entity/diamond_shield_base_nopattern"
-      }
+      "type": "minecraft:model",
+      "model": "bettershield:item/diamond_shield_blocking"
     }
   }
 }
