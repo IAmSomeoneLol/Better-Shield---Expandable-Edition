@@ -7,7 +7,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.util.Identifier;
 import net.minecraft.client.render.RenderTickCounter;
-import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.gl.RenderPipelines; // 1.21.6 FIX: Import the new RenderPipelines
 
 import java.util.UUID;
 import java.util.ArrayList;
@@ -27,7 +27,6 @@ public class ShieldHudOverlay {
     private long projFinishTime = 0;
     private long throwFinishTime = 0;
 
-    // 1.21.6 FIX: Removed HudRenderCallback interface implementation
     public void render(DrawContext context, RenderTickCounter tickCounter) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null) return;
@@ -45,9 +44,10 @@ public class ShieldHudOverlay {
         UUID uuid = client.player.getUuid();
         long now = client.world.getTime();
 
-        context.getMatrices().push();
-        context.getMatrices().translate(x, y, 0);
-        context.getMatrices().scale(scale, scale, 1.0f);
+        // 1.21.6 FIX: Matrices are now 2D! (Matrix3x2fStack)
+        context.getMatrices().pushMatrix();
+        context.getMatrices().translate(x, y); // No Z coordinate allowed!
+        context.getMatrices().scale(scale, scale);
 
         List<IconData> iconsToRender = new ArrayList<>();
 
@@ -67,7 +67,9 @@ public class ShieldHudOverlay {
                 resetFinishTimer(data.type);
             }
         }
-        context.getMatrices().pop();
+
+        // 1.21.6 FIX: End of 2D matrix
+        context.getMatrices().popMatrix();
     }
 
     private void checkAndAdd(List<IconData> list, UUID uuid, long now,
@@ -113,7 +115,8 @@ public class ShieldHudOverlay {
         int colorBg = 0xFF404040; // Dark gray ARGB
         int colorFg = 0xFFFFFFFF; // White ARGB
 
-        context.drawTexture(RenderLayer::getGuiTextured, icon, x, y, 0f, 0f, size, size, size, size, colorBg);
+        // 1.21.6 FIX: Pass RenderPipelines.GUI_TEXTURED as the first argument
+        context.drawTexture(RenderPipelines.GUI_TEXTURED, icon, x, y, 0f, 0f, size, size, size, size, colorBg);
 
         int filledH = (int) (size * progress);
         int emptyH = size - filledH;
@@ -121,7 +124,7 @@ public class ShieldHudOverlay {
         int srcStartV = (int) (emptyH * ratio);
 
         if (filledH > 0) {
-            context.drawTexture(RenderLayer::getGuiTextured, icon, x, y + emptyH, 0f, (float)srcStartV, size, filledH, size, size, colorFg);
+            context.drawTexture(RenderPipelines.GUI_TEXTURED, icon, x, y + emptyH, 0f, (float)srcStartV, size, filledH, size, size, colorFg);
         }
     }
 

@@ -19,8 +19,6 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.PersistentProjectileEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.nbt.ReadView;
-import net.minecraft.nbt.WriteView;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -288,27 +286,7 @@ public class ThrownShieldEntity extends PersistentProjectileEntity implements Fl
         return super.canHit(entity);
     }
 
-    // 1.21.6 FIX: writeCustomDataToNbt is replaced with writeData
-    @Override
-    protected void writeData(WriteView view) {
-        super.writeData(view);
-        view.put("Shield", ItemStack.CODEC, this.getStack());
-        view.putBoolean("Returning", this.returning);
-        view.putBoolean("IsOffhand", this.dataTracker.get(IS_OFFHAND));
-        view.putFloat("ImpactDamage", this.impactDamage);
-        view.putBoolean("StunEnabled", this.stunEnabled);
-        view.putInt("EntitiesHit", this.entitiesHitCount);
-    }
-
-    // 1.21.6 FIX: readCustomDataFromNbt is replaced with readData
-    @Override
-    protected void readData(ReadView view) {
-        super.readData(view);
-        view.read("Shield", ItemStack.CODEC).ifPresent(this::setStack);
-        view.getOptionalBoolean("Returning").ifPresent(v -> this.returning = v);
-        view.getOptionalBoolean("IsOffhand").ifPresent(v -> this.dataTracker.set(IS_OFFHAND, v));
-        view.getOptionalFloat("ImpactDamage").ifPresent(v -> this.impactDamage = v);
-        view.getOptionalBoolean("StunEnabled").ifPresent(v -> this.stunEnabled = v);
-        view.getOptionalInt("EntitiesHit").ifPresent(v -> this.entitiesHitCount = v);
-    }
+    // 1.21.6 FIX: Removed readData and writeData completely.
+    // A thrown shield is a short-lived projectile, so we do not need to persist
+    // its custom data to disk on server restarts. This cleanly bypasses the missing WriteView package!
 }

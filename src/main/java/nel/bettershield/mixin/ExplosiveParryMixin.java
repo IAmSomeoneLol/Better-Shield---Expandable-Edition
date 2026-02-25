@@ -79,8 +79,9 @@ public abstract class ExplosiveParryMixin {
                     Vec3d dir = player.getRotationVector();
                     ProjectileEntity newProj = null;
 
-                    if (self instanceof FireballEntity oldBall) {
-                        // 1.21.6 FIX: Bypass NBT parsing logic entirely for the explosion power
+                    if (self instanceof FireballEntity) {
+                        // 1.21.6 FIX: Bypass NBT parsing logic entirely for the explosion power.
+                        // Reading NBT from entities is no longer supported directly via NbtCompound.
                         int power = 1;
                         newProj = new FireballEntity(player.getWorld(), player, dir.normalize(), power);
                     }

@@ -10,7 +10,7 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
-import net.fabricmc.fabric.api.client.rendering.v1.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry; // 1.21.6 FIX: Added .hud to package path
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.client.MinecraftClient;
@@ -60,7 +60,6 @@ public class BettershieldClient implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
-		// 1.21.6 FIX: Register via the new HudElementRegistry
 		ShieldHudOverlay hudOverlay = new ShieldHudOverlay();
 		HudElementRegistry.addLast(Identifier.of(Bettershield.MOD_ID, "shield_hud"), hudOverlay::render);
 
