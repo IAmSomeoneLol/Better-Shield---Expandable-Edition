@@ -16,6 +16,7 @@ import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ShieldItem;
+import net.minecraft.particle.ParticleTypes; // 1.21.9 FIX: Added Vanilla ParticleTypes
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -35,12 +36,11 @@ import java.util.List;
 @Mixin(PlayerEntity.class)
 public abstract class SlamImpactMixin {
 
-    // 1.21.5 FIX: fallDistance is now a double!
     @Inject(method = "handleFallDamage", at = @At("HEAD"))
     public void onFallDamage(double fallDistance, float damageMultiplier, DamageSource damageSource, CallbackInfoReturnable<Boolean> cir) {
         PlayerEntity player = (PlayerEntity) (Object) this;
 
-        if (player.getWorld().isClient) return;
+        if (player.getEntityWorld().isClient()) return;
 
         if (Bettershield.SLAM_START_Y.containsKey(player.getUuid())) {
 
@@ -57,7 +57,7 @@ public abstract class SlamImpactMixin {
                 stack = player.getStackInHand(Hand.OFF_HAND);
             }
 
-            var enchantmentRegistry = player.getWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
+            var enchantmentRegistry = player.getEntityWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
 
             var foamEntry = enchantmentRegistry.getOptional(BetterShieldEnchantments.SLAM_FOAM);
             int levelFoam = foamEntry.isPresent() ? EnchantmentHelper.getLevel(foamEntry.get(), stack) : 0;
@@ -66,7 +66,7 @@ public abstract class SlamImpactMixin {
                 player.fallDistance = player.fallDistance * (1.0f - reduction);
             }
 
-            ServerWorld world = (ServerWorld) player.getWorld();
+            ServerWorld world = (ServerWorld) player.getEntityWorld();
 
             double cloudRadius = 3.0;
             int cloudCount = 20;
@@ -80,7 +80,7 @@ public abstract class SlamImpactMixin {
                 float varSize = 0.1f + (world.random.nextFloat() * 0.4f);
 
                 world.spawnParticles(
-                        Bettershield.CLOUD_PARTICLE,
+                        ParticleTypes.CLOUD, // 1.21.9 FIX: Swapped to Vanilla Cloud Particle
                         x, y, z,
                         1,
                         varSize,
@@ -116,7 +116,7 @@ public abstract class SlamImpactMixin {
             double radius = config.combat.slamRadius;
             Box box = player.getBoundingBox().expand(radius, 2.0, radius);
 
-            List<Entity> targets = player.getWorld().getOtherEntities(player, box);
+            List<Entity> targets = player.getEntityWorld().getOtherEntities(player, box);
             int entitiesHit = 0;
 
             for (Entity target : targets) {

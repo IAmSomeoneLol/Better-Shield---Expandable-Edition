@@ -28,7 +28,7 @@ public abstract class SwiftSneakMixin {
         }
 
         if (this.isBlocking() && this.getActiveItem().getItem() instanceof ShieldItem) {
-            var registry = player.getWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
+            var registry = player.getEntityWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
             int level = EnchantmentHelper.getLevel(registry.getOrThrow(Enchantments.SWIFT_SNEAK), player.getEquippedStack(net.minecraft.entity.EquipmentSlot.LEGS));
 
             if (level > 0) {

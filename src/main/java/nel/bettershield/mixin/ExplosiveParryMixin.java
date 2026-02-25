@@ -11,6 +11,7 @@ import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.*;
 import net.minecraft.item.ItemStack;
+import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -33,7 +34,7 @@ public abstract class ExplosiveParryMixin {
     private void onCollisionParry(HitResult hitResult, CallbackInfo ci) {
         ProjectileEntity self = (ProjectileEntity) (Object) this;
 
-        if (self.getWorld().isClient) return;
+        if (self.getEntityWorld().isClient()) return;
 
         if (hitResult.getType() == HitResult.Type.ENTITY && ((EntityHitResult)hitResult).getEntity() instanceof PlayerEntity player) {
 
@@ -43,7 +44,7 @@ public abstract class ExplosiveParryMixin {
 
                 if (activeShield.isEmpty()) activeShield = player.getMainHandStack();
 
-                var enchantmentRegistry = player.getWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
+                var enchantmentRegistry = player.getEntityWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
 
                 var parryfulEntry = enchantmentRegistry.getOptional(BetterShieldEnchantments.PARRYFUL);
                 int levelParryful = parryfulEntry.isPresent() ? EnchantmentHelper.getLevel(parryfulEntry.get(), activeShield) : 0;
@@ -72,7 +73,7 @@ public abstract class ExplosiveParryMixin {
                         if (stunEntry != null) {
                             shooter.addStatusEffect(new StatusEffectInstance(stunEntry, config.stunMechanics.stunDuration, 0, false, false, true));
                             Bettershield.StunMobsPayload stunPayload = new Bettershield.StunMobsPayload(shooter.getId(), config.stunMechanics.stunDuration);
-                            player.getWorld().getPlayers().forEach(p -> ServerPlayNetworking.send((ServerPlayerEntity)p, stunPayload));
+                            ((ServerWorld) player.getEntityWorld()).getPlayers().forEach(p -> ServerPlayNetworking.send((ServerPlayerEntity)p, stunPayload));
                         }
                     }
 
@@ -80,29 +81,27 @@ public abstract class ExplosiveParryMixin {
                     ProjectileEntity newProj = null;
 
                     if (self instanceof FireballEntity) {
-                        // 1.21.6 FIX: Bypass NBT parsing logic entirely for the explosion power.
-                        // Reading NBT from entities is no longer supported directly via NbtCompound.
                         int power = 1;
-                        newProj = new FireballEntity(player.getWorld(), player, dir.normalize(), power);
+                        newProj = new FireballEntity(player.getEntityWorld(), player, dir.normalize(), power);
                     }
                     else if (self instanceof SmallFireballEntity) {
-                        newProj = new SmallFireballEntity(player.getWorld(), player, dir.normalize());
+                        newProj = new SmallFireballEntity(player.getEntityWorld(), player, dir.normalize());
                     }
                     else if (self instanceof WitherSkullEntity oldSkull) {
-                        WitherSkullEntity newSkull = new WitherSkullEntity(player.getWorld(), player, dir.normalize());
+                        WitherSkullEntity newSkull = new WitherSkullEntity(player.getEntityWorld(), player, dir.normalize());
                         if (oldSkull.isCharged()) newSkull.setCharged(true);
                         newProj = newSkull;
                     }
 
                     if (newProj != null) {
-                        Vec3d spawnPos = player.getEyePos().add(dir.multiply(1.5));
+                        Vec3d spawnPos = new Vec3d(player.getX(), player.getY() + player.getStandingEyeHeight(), player.getZ()).add(dir.multiply(1.5));
                         newProj.refreshPositionAndAngles(spawnPos.x, spawnPos.y, spawnPos.z, player.getYaw(), player.getPitch());
-                        player.getWorld().spawnEntity(newProj);
+                        player.getEntityWorld().spawnEntity(newProj);
                     }
 
-                    if (player.getWorld() instanceof ServerWorld serverWorld) {
-                        serverWorld.spawnParticles(Bettershield.SPARK_PARTICLE,
-                                player.getX(), player.getEyeY() - 0.2, player.getZ(),
+                    if (player.getEntityWorld() instanceof ServerWorld serverWorld) {
+                        serverWorld.spawnParticles(ParticleTypes.CRIT,
+                                player.getX(), player.getY() + player.getStandingEyeHeight() - 0.2, player.getZ(),
                                 15, 0.4, 0.4, 0.4, 0.2);
                     }
 
@@ -117,7 +116,7 @@ public abstract class ExplosiveParryMixin {
                     player.getItemCooldownManager().set(activeShield, 0);
 
                     activeShield.damage(1, player, player.getActiveHand() == Hand.MAIN_HAND ? net.minecraft.entity.EquipmentSlot.MAINHAND : net.minecraft.entity.EquipmentSlot.OFFHAND);
-                    player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ITEM_FIRECHARGE_USE, SoundCategory.PLAYERS, 1.0f, 1.5f);
+                    player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ITEM_FIRECHARGE_USE, SoundCategory.PLAYERS, 1.0f, 1.5f);
 
                     self.discard();
                     ci.cancel();

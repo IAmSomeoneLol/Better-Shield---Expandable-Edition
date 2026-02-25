@@ -13,6 +13,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.*;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ShieldItem;
+import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -44,7 +45,7 @@ public abstract class ShieldParryMixin {
             ItemStack activeShield = this.getActiveItem();
             if (activeShield.isEmpty()) activeShield = player.getMainHandStack();
 
-            var enchantmentRegistry = player.getWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
+            var enchantmentRegistry = player.getEntityWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
 
             var parryfulEntry = enchantmentRegistry.getOptional(BetterShieldEnchantments.PARRYFUL);
             int levelParryful = parryfulEntry.isPresent() ? EnchantmentHelper.getLevel(parryfulEntry.get(), activeShield) : 0;
@@ -54,7 +55,7 @@ public abstract class ShieldParryMixin {
 
                 if (Bettershield.isParryDebounced(player)) return;
 
-                if (!player.getWorld().isClient && player instanceof ServerPlayerEntity serverPlayer) {
+                if (!player.getEntityWorld().isClient() && player instanceof ServerPlayerEntity serverPlayer) {
                     BetterShieldCriteria.grantAdvancement(serverPlayer, "parry");
                 }
 
@@ -76,7 +77,7 @@ public abstract class ShieldParryMixin {
                         !(oldProjectile instanceof SmallFireballEntity)) {
 
                     if (Bettershield.PARRY_PROJECTILE_COOLDOWN.containsKey(player.getUuid())) {
-                        if (player.getWorld().getTime() < Bettershield.PARRY_PROJECTILE_COOLDOWN.get(player.getUuid())) {
+                        if (player.getEntityWorld().getTime() < Bettershield.PARRY_PROJECTILE_COOLDOWN.get(player.getUuid())) {
                             return;
                         }
                     }
@@ -84,13 +85,13 @@ public abstract class ShieldParryMixin {
                     cir.setReturnValue(false);
                     Vec3d finalDirection = player.getRotationVector();
 
-                    if (!player.getWorld().isClient) {
+                    if (!player.getEntityWorld().isClient()) {
                         if (config.stunMechanics.deflectStunEnabled && source.getAttacker() instanceof LivingEntity shooter) {
                             var stunEntry = Registries.STATUS_EFFECT.getEntry(Bettershield.STUN_EFFECT);
                             if (stunEntry != null) {
                                 shooter.addStatusEffect(new StatusEffectInstance(stunEntry, config.stunMechanics.stunDuration, 0, false, false, true));
                                 Bettershield.StunMobsPayload stunPayload = new Bettershield.StunMobsPayload(shooter.getId(), config.stunMechanics.stunDuration);
-                                player.getWorld().getPlayers().forEach(p -> ServerPlayNetworking.send((ServerPlayerEntity)p, stunPayload));
+                                ((ServerWorld) player.getEntityWorld()).getPlayers().forEach(p -> ServerPlayNetworking.send((ServerPlayerEntity)p, stunPayload));
                             }
                         }
 
@@ -109,13 +110,13 @@ public abstract class ShieldParryMixin {
                                 }
                                 arrow.pickupType = PersistentProjectileEntity.PickupPermission.DISALLOWED;
                             }
-                            player.getWorld().spawnEntity(newProjectile);
+                            player.getEntityWorld().spawnEntity(newProjectile);
                             oldProjectile.discard();
                         }
 
-                        if (player.getWorld() instanceof ServerWorld serverWorldSpark) {
-                            serverWorldSpark.spawnParticles(Bettershield.SPARK_PARTICLE,
-                                    player.getX(), player.getEyeY() - 0.2, player.getZ(),
+                        if (player.getEntityWorld() instanceof ServerWorld serverWorldSpark) {
+                            serverWorldSpark.spawnParticles(ParticleTypes.CRIT,
+                                    player.getX(), player.getY() + player.getStandingEyeHeight() - 0.2, player.getZ(),
                                     10, 0.3, 0.3, 0.3, 0.1);
                         }
 
@@ -129,33 +130,33 @@ public abstract class ShieldParryMixin {
 
                     player.getItemCooldownManager().set(activeShield, 0);
                     this.damageShield(player, 1);
-                    player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ITEM_TRIDENT_HIT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+                    player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ITEM_TRIDENT_HIT, SoundCategory.PLAYERS, 1.0f, 1.0f);
                     return;
                 }
 
                 // --- MELEE PARRY ---
                 if (source.getAttacker() instanceof LivingEntity attacker) {
                     if (Bettershield.PARRY_MELEE_COOLDOWN.containsKey(player.getUuid())) {
-                        if (player.getWorld().getTime() < Bettershield.PARRY_MELEE_COOLDOWN.get(player.getUuid())) {
+                        if (player.getEntityWorld().getTime() < Bettershield.PARRY_MELEE_COOLDOWN.get(player.getUuid())) {
                             return;
                         }
                     }
 
                     cir.setReturnValue(false);
 
-                    if (!player.getWorld().isClient) {
+                    if (!player.getEntityWorld().isClient()) {
                         if (config.stunMechanics.parryStunEnabled) {
                             var stunEntry = Registries.STATUS_EFFECT.getEntry(Bettershield.STUN_EFFECT);
                             if (stunEntry != null) {
                                 attacker.addStatusEffect(new StatusEffectInstance(stunEntry, config.stunMechanics.stunDuration, 0, false, false, true));
                                 Bettershield.StunMobsPayload stunPayload = new Bettershield.StunMobsPayload(attacker.getId(), config.stunMechanics.stunDuration);
-                                player.getWorld().getPlayers().forEach(p -> ServerPlayNetworking.send((ServerPlayerEntity)p, stunPayload));
+                                ((ServerWorld) player.getEntityWorld()).getPlayers().forEach(p -> ServerPlayNetworking.send((ServerPlayerEntity)p, stunPayload));
                             }
                         }
 
-                        if (player.getWorld() instanceof ServerWorld serverWorldSpark) {
-                            serverWorldSpark.spawnParticles(Bettershield.SPARK_PARTICLE,
-                                    player.getX(), player.getEyeY() - 0.2, player.getZ(),
+                        if (player.getEntityWorld() instanceof ServerWorld serverWorldSpark) {
+                            serverWorldSpark.spawnParticles(ParticleTypes.CRIT,
+                                    player.getX(), player.getY() + player.getStandingEyeHeight() - 0.2, player.getZ(),
                                     10, 0.3, 0.3, 0.3, 0.1);
                         }
 
@@ -170,7 +171,7 @@ public abstract class ShieldParryMixin {
                     player.getItemCooldownManager().set(activeShield, 0);
                     this.damageShield(player, 1);
 
-                    player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BLOCK_ANVIL_LAND, SoundCategory.PLAYERS, 1.0f, 1.5f);
+                    player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BLOCK_ANVIL_LAND, SoundCategory.PLAYERS, 1.0f, 1.5f);
                     attacker.takeKnockback(0.5, player.getX() - attacker.getX(), player.getZ() - attacker.getZ());
 
                     return;
@@ -180,7 +181,7 @@ public abstract class ShieldParryMixin {
     }
 
     private ProjectileEntity createReflectedProjectile(ProjectileEntity old, PlayerEntity owner, Vec3d dir, double speed) {
-        ServerWorld world = (ServerWorld) owner.getWorld();
+        ServerWorld world = (ServerWorld) owner.getEntityWorld();
         ProjectileEntity result = null;
         double spawnOffset = 0.5;
 
@@ -205,7 +206,7 @@ public abstract class ShieldParryMixin {
         }
 
         if (result != null) {
-            Vec3d spawnPos = owner.getEyePos().add(dir.multiply(spawnOffset));
+            Vec3d spawnPos = new Vec3d(owner.getX(), owner.getY() + owner.getStandingEyeHeight(), owner.getZ()).add(dir.multiply(spawnOffset));
             result.setPosition(spawnPos.x, spawnPos.y, spawnPos.z);
             result.setVelocity(dir.x, dir.y, dir.z, (float) speed, 0.0f);
             result.setOwner(owner);

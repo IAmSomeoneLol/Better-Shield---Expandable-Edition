@@ -21,7 +21,7 @@ public abstract class ActiveArmorMixin {
         ItemStack offHand = entity.getOffHandStack();
 
         if (offHand.getItem() instanceof ShieldItem) {
-            int level = EnchantmentHelper.getLevel(entity.getWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT).getOrThrow(BetterShieldEnchantments.ACTIVE_ARMOR), offHand);
+            int level = EnchantmentHelper.getLevel(entity.getEntityWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT).getOrThrow(BetterShieldEnchantments.ACTIVE_ARMOR), offHand);
 
             if (level > 0) {
                 float reduction = level * 0.04f;

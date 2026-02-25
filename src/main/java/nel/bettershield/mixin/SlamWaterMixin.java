@@ -17,7 +17,7 @@ public class SlamWaterMixin {
         PlayerEntity player = (PlayerEntity) (Object) this;
 
         // Run on Server only
-        if (!player.getWorld().isClient) {
+        if (!player.getEntityWorld().isClient()) {
             // Check if this player is currently in a "Slam" state
             if (Bettershield.SLAM_START_Y.containsKey(player.getUuid())) {
 
@@ -27,7 +27,7 @@ public class SlamWaterMixin {
                     Bettershield.SLAM_START_Y.remove(player.getUuid());
 
                     // Optional: Play a "fizz" sound to indicate cancellation
-                    player.getWorld().playSound(null, player.getBlockPos(), SoundEvents.ENTITY_GENERIC_EXTINGUISH_FIRE, SoundCategory.PLAYERS, 0.5f, 1.0f);
+                    player.getEntityWorld().playSound(null, player.getBlockPos(), SoundEvents.ENTITY_GENERIC_EXTINGUISH_FIRE, SoundCategory.PLAYERS, 0.5f, 1.0f);
                 }
             }
         }

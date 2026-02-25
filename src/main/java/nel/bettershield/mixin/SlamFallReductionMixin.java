@@ -17,7 +17,7 @@ public abstract class SlamFallReductionMixin {
         // Check if SLAM_COOLDOWN exists
         if (Bettershield.SLAM_COOLDOWN.containsKey(player.getUuid())) {
             long cooldownEnd = Bettershield.SLAM_COOLDOWN.get(player.getUuid());
-            long now = player.getWorld().getTime();
+            long now = player.getEntityWorld().getTime();
 
             // If the cooldown was set recently (less than 1 second ago),
             // it means we just finished a Slam.

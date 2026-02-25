@@ -107,11 +107,11 @@ public class ThrownShieldEntity extends PersistentProjectileEntity implements Fl
             this.pickupType = PickupPermission.DISALLOWED;
 
             Vec3d ownerPos = owner.getEyePos().subtract(0, 0.5, 0);
-            Vec3d toOwner = ownerPos.subtract(this.getPos());
+            Vec3d toOwner = ownerPos.subtract(new Vec3d(this.getX(), this.getY(), this.getZ()));
             double distance = toOwner.length();
 
             this.setPos(this.getX(), this.getY() + toOwner.y * 0.015, this.getZ());
-            if (this.getWorld().isClient) this.lastRenderY = this.getY();
+            if (this.getEntityWorld().isClient()) this.lastRenderY = this.getY();
 
             double speed = 0.5;
             double drag = 0.95;
@@ -134,14 +134,14 @@ public class ThrownShieldEntity extends PersistentProjectileEntity implements Fl
     public void onPlayerCollision(PlayerEntity player) {
         if (this.age < 5) return;
         if (this.isOwner(player) || this.getOwner() == null) {
-            if (!this.returning && !this.getWorld().isClient) {
+            if (!this.returning && !this.getEntityWorld().isClient()) {
                 tryCatchShield(player);
             }
         }
     }
 
     private void tryCatchShield(Entity owner) {
-        if (!this.getWorld().isClient && owner instanceof PlayerEntity player) {
+        if (!this.getEntityWorld().isClient() && owner instanceof PlayerEntity player) {
             if (player.isCreative()) {
                 this.discard();
                 player.playSound(SoundEvents.ITEM_TRIDENT_RETURN, 1.0F, 1.0F);
@@ -200,7 +200,7 @@ public class ThrownShieldEntity extends PersistentProjectileEntity implements Fl
         this.hitEntities.add(target.getId());
 
         int piercingLevel = 0;
-        var enchantmentRegistry = this.getWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
+        var enchantmentRegistry = this.getEntityWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
         var piercingEntry = enchantmentRegistry.getOptional(Enchantments.PIERCING);
         if (piercingEntry.isPresent()) {
             piercingLevel = EnchantmentHelper.getLevel(piercingEntry.get(), this.getStack());
@@ -214,12 +214,12 @@ public class ThrownShieldEntity extends PersistentProjectileEntity implements Fl
             this.setVelocity(this.getVelocity().multiply(-0.1));
         } else {
             this.setVelocity(this.getVelocity().multiply(0.95));
-            if (!this.getWorld().isClient) {
-                this.getWorld().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ITEM_TRIDENT_HIT, net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 2.0f);
+            if (!this.getEntityWorld().isClient()) {
+                this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ITEM_TRIDENT_HIT, net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 2.0f);
             }
         }
 
-        if (this.getWorld().isClient) return;
+        if (this.getEntityWorld().isClient()) return;
 
         float damage = this.impactDamage;
         float damageMult = 1.0f;
@@ -238,7 +238,7 @@ public class ThrownShieldEntity extends PersistentProjectileEntity implements Fl
 
         Entity owner = this.getOwner();
         if (owner instanceof LivingEntity livingOwner) {
-            target.damage((ServerWorld) this.getWorld(), this.getDamageSources().trident(this, livingOwner), damage);
+            target.damage((ServerWorld) this.getEntityWorld(), this.getDamageSources().trident(this, livingOwner), damage);
 
             if (this.stunEnabled && target instanceof LivingEntity livingTarget) {
                 BetterShieldConfig config = Bettershield.getConfig();
@@ -247,7 +247,7 @@ public class ThrownShieldEntity extends PersistentProjectileEntity implements Fl
                 if (stunEntry != null) {
                     livingTarget.addStatusEffect(new StatusEffectInstance(stunEntry, config.stunMechanics.stunDuration, 0, false, false, true));
                     Bettershield.StunMobsPayload stunPayload = new Bettershield.StunMobsPayload(livingTarget.getId(), config.stunMechanics.stunDuration);
-                    this.getWorld().getPlayers().forEach(p -> net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send((ServerPlayerEntity)p, stunPayload));
+                    ((ServerWorld) this.getEntityWorld()).getPlayers().forEach(p -> net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send((ServerPlayerEntity)p, stunPayload));
                 }
             }
 
@@ -267,14 +267,14 @@ public class ThrownShieldEntity extends PersistentProjectileEntity implements Fl
                 stack.setDamage(stack.getDamage() + 2);
                 if (stack.getDamage() >= stack.getMaxDamage()) {
                     this.discard();
-                    this.getWorld().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ITEM_SHIELD_BREAK, net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
+                    this.getEntityWorld().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ITEM_SHIELD_BREAK, net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f);
                     return;
                 }
                 this.setStack(stack);
             }
 
         } else {
-            target.damage((ServerWorld) this.getWorld(), this.getDamageSources().thrown(this, this.getOwner()), damage);
+            target.damage((ServerWorld) this.getEntityWorld(), this.getDamageSources().thrown(this, this.getOwner()), damage);
         }
     }
 
@@ -285,8 +285,4 @@ public class ThrownShieldEntity extends PersistentProjectileEntity implements Fl
         }
         return super.canHit(entity);
     }
-
-    // 1.21.6 FIX: Removed readData and writeData completely.
-    // A thrown shield is a short-lived projectile, so we do not need to persist
-    // its custom data to disk on server restarts. This cleanly bypasses the missing WriteView package!
 }

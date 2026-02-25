@@ -2,7 +2,7 @@ package nel.bettershield.mixin.client;
 
 import nel.bettershield.BettershieldClient;
 import nel.bettershield.registry.BetterShieldItems;
-import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.command.OrderedRenderCommandQueue; // 1.21.9 FIX: New Rendering Queue
 import net.minecraft.client.render.item.HeldItemRenderer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.LivingEntity;
@@ -18,10 +18,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(HeldItemRenderer.class)
 public class HeldItemRendererMixin {
 
-    // 1.21.5 FIX: Removed the 'Z' (boolean leftHanded) from the target method signature and parameters
-    @Inject(method = "renderItem(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/item/ItemStack;Lnet/minecraft/item/ItemDisplayContext;Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;I)V",
+    // 1.21.9 FIX: Updated method signature to match the new OrderedRenderCommandQueue
+    @Inject(method = "renderItem(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/item/ItemStack;Lnet/minecraft/item/ItemDisplayContext;Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/command/OrderedRenderCommandQueue;I)V",
             at = @At("HEAD"))
-    private void onRenderItem(LivingEntity entity, ItemStack stack, ItemDisplayContext renderMode, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, CallbackInfo ci) {
+    private void onRenderItem(LivingEntity entity, ItemStack stack, ItemDisplayContext renderMode, MatrixStack matrices, OrderedRenderCommandQueue vertexConsumers, int light, CallbackInfo ci) {
 
         boolean isFirstPerson = (renderMode == ItemDisplayContext.FIRST_PERSON_RIGHT_HAND || renderMode == ItemDisplayContext.FIRST_PERSON_LEFT_HAND);
 

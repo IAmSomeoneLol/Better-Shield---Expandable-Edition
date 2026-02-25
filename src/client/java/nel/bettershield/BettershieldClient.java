@@ -1,33 +1,23 @@
 package nel.bettershield;
 
 import nel.bettershield.client.ShieldHudOverlay;
-import nel.bettershield.client.SparkParticle;
-import nel.bettershield.client.CloudParticle;
-import nel.bettershield.client.ThrownShieldEntityRenderer;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry; // 1.21.6 FIX: Added .hud to package path
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.render.*;
+import net.minecraft.client.render.entity.FlyingItemEntityRenderer;
 import net.minecraft.client.util.InputUtil;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.particle.ItemStackParticleEffect;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.Vec3d;
-import org.joml.Quaternionf;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.HashMap;
@@ -38,9 +28,7 @@ import java.util.UUID;
 
 public class BettershieldClient implements ClientModInitializer {
 
-	private static final Identifier STAR_TEXTURE = Identifier.of("bettershield", "textures/particle/stun_star.png");
-	private static final HashMap<Integer, Long> STUNNED_ENTITIES = new HashMap<>();
-
+	public static final HashMap<Integer, Long> STUNNED_ENTITIES = new HashMap<>();
 	private static final HashMap<Integer, Integer> BASH_TRAILS = new HashMap<>();
 	private boolean wasAttackPressed = false;
 	private final Random random = new Random();
@@ -51,11 +39,12 @@ public class BettershieldClient implements ClientModInitializer {
 	private Item lastMainHandItem = null;
 	private boolean isBlacklistedCached = false;
 
+	public static final KeyBinding.Category SHIELD_CATEGORY = KeyBinding.Category.create(Identifier.of(Bettershield.MOD_ID, "main"));
 	public static final KeyBinding THROW_SHIELD_KEY = KeyBindingHelper.registerKeyBinding(new KeyBinding(
 			"key.bettershield.throw",
 			InputUtil.Type.MOUSE,
 			GLFW.GLFW_MOUSE_BUTTON_3,
-			"category.bettershield.title"
+			SHIELD_CATEGORY
 	));
 
 	@Override
@@ -63,10 +52,8 @@ public class BettershieldClient implements ClientModInitializer {
 		ShieldHudOverlay hudOverlay = new ShieldHudOverlay();
 		HudElementRegistry.addLast(Identifier.of(Bettershield.MOD_ID, "shield_hud"), hudOverlay::render);
 
-		EntityRendererRegistry.register(Bettershield.THROWN_SHIELD_ENTITY_TYPE, ThrownShieldEntityRenderer::new);
-
-		ParticleFactoryRegistry.getInstance().register(Bettershield.SPARK_PARTICLE, SparkParticle.Factory::new);
-		ParticleFactoryRegistry.getInstance().register(Bettershield.CLOUD_PARTICLE, CloudParticle.Factory::new);
+		// 1.21.9 FIX: Fallback to the native Vanilla item renderer for thrown shields!
+		EntityRendererRegistry.register(Bettershield.THROWN_SHIELD_ENTITY_TYPE, FlyingItemEntityRenderer::new);
 
 		ClientPlayNetworking.registerGlobalReceiver(Bettershield.SyncCooldownPayload.ID, (payload, context) -> {
 			int type = payload.type();
@@ -123,23 +110,14 @@ public class BettershieldClient implements ClientModInitializer {
 			context.client().execute(() -> { BASH_TRAILS.put(entityId, duration); });
 		});
 
-		WorldRenderEvents.AFTER_ENTITIES.register(context -> {
-			MinecraftClient client = MinecraftClient.getInstance();
-			if (client.world == null || client.player == null) return;
-			long now = client.world.getTime();
-			Iterator<Map.Entry<Integer, Long>> iterator = STUNNED_ENTITIES.entrySet().iterator();
-			while (iterator.hasNext()) { if (now > iterator.next().getValue()) iterator.remove(); }
-
-			var stunEntry = Registries.STATUS_EFFECT.getEntry(Bettershield.STUN_EFFECT);
-
-			for (Entity entity : client.world.getEntities()) {
-				if (!(entity instanceof LivingEntity living)) continue;
-				if (STUNNED_ENTITIES.containsKey(entity.getId()) || living.hasStatusEffect(stunEntry)) renderHalo(context, living);
-			}
-		});
+		// Halo rendering removed temporarily due to Fabric 1.21.9 deleting WorldRenderEvents
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			if (client.player == null || client.world == null) return;
+
+			long now = client.world.getTime();
+			Iterator<Map.Entry<Integer, Long>> iterator = STUNNED_ENTITIES.entrySet().iterator();
+			while (iterator.hasNext()) { if (now > iterator.next().getValue()) iterator.remove(); }
 
 			Iterator<Map.Entry<Integer, Integer>> trailIterator = BASH_TRAILS.entrySet().iterator();
 			while (trailIterator.hasNext()) {
@@ -152,7 +130,7 @@ public class BettershieldClient implements ClientModInitializer {
 						double offsetX = (random.nextGaussian() * 0.2);
 						double offsetZ = (random.nextGaussian() * 0.2);
 						double offsetY = (random.nextDouble() * 0.2);
-						client.particleManager.addParticle(Bettershield.CLOUD_PARTICLE, entity.getX() + offsetX, entity.getY() + offsetY, entity.getZ() + offsetZ, 0.0, 0.01, 0.0);
+						client.particleManager.addParticle(ParticleTypes.CLOUD, entity.getX() + offsetX, entity.getY() + offsetY, entity.getZ() + offsetZ, 0.0, 0.01, 0.0);
 					}
 				}
 				if (ticks <= 1) trailIterator.remove(); else entry.setValue(ticks - 1);
@@ -212,48 +190,5 @@ public class BettershieldClient implements ClientModInitializer {
 				}
 			}
 		});
-	}
-
-	private void renderHalo(WorldRenderContext context, LivingEntity entity) {
-		MatrixStack matrices = context.matrixStack();
-		Vec3d cameraPos = context.camera().getPos();
-		VertexConsumerProvider consumers = context.consumers();
-
-		float tickDelta = context.tickCounter().getTickProgress(true);
-
-		double x = net.minecraft.util.math.MathHelper.lerp(tickDelta, entity.lastRenderX, entity.getX());
-		double y = net.minecraft.util.math.MathHelper.lerp(tickDelta, entity.lastRenderY, entity.getY());
-		double z = net.minecraft.util.math.MathHelper.lerp(tickDelta, entity.lastRenderZ, entity.getZ());
-		double height = entity.getEyeHeight(entity.getPose()) + 0.5;
-		float time = entity.age + tickDelta;
-
-		int starCount = 3;
-		double radius = 0.65;
-		double speed = 0.3;
-		VertexConsumer buffer = consumers.getBuffer(RenderLayer.getEntityTranslucent(STAR_TEXTURE));
-		Quaternionf cameraRot = context.camera().getRotation();
-
-		matrices.push();
-		matrices.translate(x - cameraPos.x, (y - cameraPos.y) + height, z - cameraPos.z);
-		for (int i = 0; i < starCount; i++) {
-			matrices.push();
-			double angle = (time * speed) + (i * (Math.PI * 2 / starCount));
-			double oX = Math.cos(angle) * radius;
-			double oZ = Math.sin(angle) * radius;
-			matrices.translate(oX, 0, oZ);
-			matrices.multiply(cameraRot);
-			drawQuad(matrices, buffer, 0.25f);
-			matrices.pop();
-		}
-		matrices.pop();
-	}
-
-	private void drawQuad(MatrixStack matrices, VertexConsumer buffer, float size) {
-		MatrixStack.Entry entry = matrices.peek();
-		int light = 15728880;
-		buffer.vertex(entry, -size, -size, 0).color(255, 255, 255, 255).texture(0, 1).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(entry, 0.0F, 1.0F, 0.0F);
-		buffer.vertex(entry, size, -size, 0).color(255, 255, 255, 255).texture(1, 1).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(entry, 0.0F, 1.0F, 0.0F);
-		buffer.vertex(entry, size, size, 0).color(255, 255, 255, 255).texture(1, 0).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(entry, 0.0F, 1.0F, 0.0F);
-		buffer.vertex(entry, -size, size, 0).color(255, 255, 255, 255).texture(0, 0).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(entry, 0.0F, 1.0F, 0.0F);
 	}
 }
