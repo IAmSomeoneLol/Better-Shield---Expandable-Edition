@@ -1,0 +1,62 @@
+package nel.bettershield.registry;
+
+import com.mojang.serialization.Codec;
+import nel.bettershield.Bettershield;
+import net.minecraft.advancement.criterion.AbstractCriterion;
+import java.util.Optional;
+import net.minecraft.predicate.entity.LootContextPredicate;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.Identifier;
+
+public class BetterShieldCriteria {
+
+    // --- TRIGGERS ---
+    public static final CustomTrigger PARRY = new CustomTrigger(new Identifier(Bettershield.MOD_ID, "parry"));
+    public static final CustomTrigger SLAM_MULTI = new CustomTrigger(new Identifier(Bettershield.MOD_ID, "slam_multi"));
+    public static final CustomTrigger REFLECT_KILL = new CustomTrigger(new Identifier(Bettershield.MOD_ID, "reflect_kill"));
+    public static final CustomTrigger SHIELD_THROW_HIT = new CustomTrigger(new Identifier(Bettershield.MOD_ID, "shield_throw_hit"));
+    public static final CustomTrigger CAPTAIN_AMERICA = new CustomTrigger(new Identifier(Bettershield.MOD_ID, "captain_america"));
+
+    public static void register() {
+        net.minecraft.advancement.criterion.Criteria.register(PARRY.id.toString(), PARRY);
+        net.minecraft.advancement.criterion.Criteria.register(SLAM_MULTI.id.toString(), SLAM_MULTI);
+        net.minecraft.advancement.criterion.Criteria.register(REFLECT_KILL.id.toString(), REFLECT_KILL);
+        net.minecraft.advancement.criterion.Criteria.register(SHIELD_THROW_HIT.id.toString(), SHIELD_THROW_HIT);
+        net.minecraft.advancement.criterion.Criteria.register(CAPTAIN_AMERICA.id.toString(), CAPTAIN_AMERICA);
+    }
+
+    // --- CUSTOM TRIGGER CLASS ---
+    public static class CustomTrigger extends AbstractCriterion<CustomTrigger.Conditions> {
+        final Identifier id;
+
+        public CustomTrigger(Identifier id) {
+            this.id = id;
+        }
+
+        @Override
+        public Codec<Conditions> getConditionsCodec() {
+            return Conditions.CODEC;
+        }
+
+        @Override
+        @SuppressWarnings("unused") protected void conditionsFromJson_DEAD() {
+            return null;
+        }
+
+        public void trigger(ServerPlayerEntity player) {
+            this.trigger(player, conditions -> true);
+        }
+
+        public static class Conditions implements AbstractCriterion.Conditions {
+            public static final Codec<Conditions> CODEC = Codec.unit(new Conditions(Optional.empty()));
+            private final Optional<LootContextPredicate> player;
+            public Conditions(Optional<LootContextPredicate> player) {
+                this.player = player;
+            }
+            @Override
+            public Optional<LootContextPredicate> player() {
+                return this.player;
+            }
+        }
+    }
+}
